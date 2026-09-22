@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.astro/
+.env
+# Status data lives on the status-data branch; check it out here with
+#   git worktree add data status-data
+data/
