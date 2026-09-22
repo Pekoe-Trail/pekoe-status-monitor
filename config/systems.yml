@@ -1,0 +1,104 @@
+# Systems shown on status.thepekoetrail.org.
+#
+# Each system is checked every run. Fields:
+#   id           stable key; used in data file names and incident notes. Never rename.
+#   name         shown on the page
+#   description  one line shown under the name
+#   group        heading the system is listed under
+#   url          public link shown on the page (omit to show no link)
+#   critical     a Down critical system makes the overall status "Major outage"
+#   sms          send an SMS (notify.lk) when it goes Down, on top of Telegram
+#   degradedMs   a passing check slower than this counts as Degraded
+#   check        what to run:
+#     type: http   GET `url`; passes on `expectStatus` (default 200) and, if set,
+#                  when the body contains `expectText`
+#     type: login  sign in to the API with the monitoring account, call
+#                  /users/me, then log out. Needs MONITOR_EMAIL and MONITOR_PASSWORD.
+
+settings:
+  timeoutMs: 15000
+  retryDelayMs: 10000
+  # Consecutive Down checks before developers are notified.
+  confirmAfter: 2
+  # Detailed checks kept; older days survive only as daily totals.
+  keepCheckDays: 7
+
+# Trail alerts (PSAs) published in the admin panel, shown on the Trail alerts page.
+# Read every run from the API's public history; the last good copy is kept if it fails.
+#   historyUrl  public history endpoint, paged 50 at a time, newest first
+#   maxPages    pages to read, so at most maxPages × 50 alerts are shown
+#   stages      number of trail stages, for the stage strip on the home page
+alerts:
+  historyUrl: https://api.pekoetrailapp.com/v1/alerts/public/global/history
+  maxPages: 4
+  stages: 22
+
+systems:
+  - id: website
+    name: Website
+    description: thepekoetrail.org
+    group: Websites
+    url: https://thepekoetrail.org
+    critical: true
+    sms: true
+    degradedMs: 4000
+    check:
+      type: http
+      url: https://thepekoetrail.org/
+      expectText: Pekoe Trail
+
+  - id: members-portal
+    name: Members portal
+    description: Memberships and member passes
+    group: Websites
+    url: https://portal.thepekoetrail.org
+    critical: true
+    sms: true
+    degradedMs: 4000
+    check:
+      type: http
+      url: https://portal.thepekoetrail.org/
+
+  - id: shop
+    name: Shop and experiences
+    description: Trail essentials and guided hike bookings
+    group: Websites
+    url: https://portal.pekoetrailapp.com/shop
+    sms: true
+    degradedMs: 4000
+    check:
+      type: http
+      url: https://portal.pekoetrailapp.com/shop
+      expectText: Shop
+
+  - id: api
+    name: App and API
+    description: Serves the mobile app and the portals
+    group: Platform
+    critical: true
+    sms: true
+    degradedMs: 2000
+    check:
+      type: http
+      url: https://api.pekoetrailapp.com/v1
+      expectText: '"data":"OK"'
+
+  - id: api-login
+    name: Sign-in
+    description: Signing in to the app and portals
+    group: Platform
+    critical: true
+    sms: true
+    degradedMs: 3000
+    check:
+      type: login
+      baseUrl: https://api.pekoetrailapp.com/v1
+
+  - id: cdn
+    name: Images and files
+    description: Photos, maps and downloads
+    group: Platform
+    degradedMs: 2000
+    check:
+      type: http
+      url: https://cdn.pekoetrailapp.com/static/The-Pekoe-Trail-logo.png
