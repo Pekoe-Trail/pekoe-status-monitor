@@ -1,0 +1,105 @@
+name: Check
+
+# Every 10 minutes, off the busy :00 minute. GitHub often starts scheduled runs late.
+on:
+  schedule:
+    - cron: '7-59/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+# One run at a time, so two runs never write the status data together.
+concurrency:
+  group: status-data
+  cancel-in-progress: false
+
+jobs:
+  # Runs the checks with the secrets but read-only repository access. Dependency code runs
+  # here, so this job can't push; it hands the results to the save job as an artifact.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Secrets live in this environment, which only main may use.
+    environment: monitor
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: status-data
+          path: data
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # No install scripts: dependencies don't run code before we use them.
+      - run: npm ci --ignore-scripts
+
+      # Secrets are masked in the public log, and the scripts never print them or any
+      # response content.
+      - name: Run checks
+        run: npm run check
+        env:
+          MONITOR_EMAIL: ${{ secrets.MONITOR_EMAIL }}
+          MONITOR_PASSWORD: ${{ secrets.MONITOR_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NOTIFYLK_USER_ID: ${{ secrets.NOTIFYLK_USER_ID }}
+          NOTIFYLK_API_KEY: ${{ secrets.NOTIFYLK_API_KEY }}
+          NOTIFYLK_SENDER_ID: ${{ secrets.NOTIFYLK_SENDER_ID }}
+          NOTIFYLK_TO: ${{ secrets.NOTIFYLK_TO }}
+
+      # Hidden files, including data/.git, are left out.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: status-data
+          path: data
+          retention-days: 1
+
+  # Commits the results. No secrets and no dependency code; only the known data files are
+  # copied from the artifact.
+  save:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # push results to the status-data branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: status-data
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: status-data
+          path: ${{ runner.temp }}/results
+
+      - name: Save results
+        env:
+          RESULTS: ${{ runner.temp }}/results
+        run: |
+          rm -rf checks daily
+          cp -R "$RESULTS/checks" "$RESULTS/daily" .
+          cp "$RESULTS/current.json" .
+          if [ -f "$RESULTS/alerts.json" ]; then cp "$RESULTS/alerts.json" .; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -q -m "chore(data): checks $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q origin HEAD:status-data
+
+  deploy:
+    needs: save
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy.yml
