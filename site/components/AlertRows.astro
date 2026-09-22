@@ -1,0 +1,29 @@
+---
+import { alertHref, severityClass, where, type Alert } from '../lib/alerts.ts';
+import { formatDateTime } from '../lib/status.ts';
+
+interface Props {
+  items: Alert[];
+  empty?: string;
+}
+
+const { items, empty = 'No trail alerts.' } = Astro.props;
+---
+
+<div class="card">
+  {items.length === 0 && <p class="empty">{empty}</p>}
+  {
+    items.map((alert) => (
+      <a class:list={['incident', 'done']} href={alertHref(alert)}>
+        <div class="incident-title">
+          {alert.title ?? alert.reason ?? alert.category.label}{' '}
+          <span class:list={['sev', 'sev-small', severityClass(alert.severity.value)]}>{alert.severity.label}</span>
+        </div>
+        <div class="incident-meta">
+          {alert.number} · {where(alert)} · {formatDateTime(new Date(alert.publishedAt))}
+          {alert.closedAt && <> · resolved {formatDateTime(new Date(alert.closedAt))}</>}
+        </div>
+      </a>
+    ))
+  }
+</div>

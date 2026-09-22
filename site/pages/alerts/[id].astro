@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+import { KIND_LABEL, alerts, severityClass, timeline, where, type Alert } from '../../lib/alerts.ts';
+import { formatDateTime } from '../../lib/status.ts';
+
+/**
+ * Lists one page per trail alert, named after its lower-cased number.
+ *
+ * @returns Each alert's route, such as `psa-0042`, with the alert as the page's props.
+ */
+export function getStaticPaths() {
+  return alerts.map((alert) => ({ params: { id: alert.number.toLowerCase() }, props: { alert } }));
+}
+
+interface Props {
+  alert: Alert;
+}
+
+const { alert } = Astro.props;
+const title = alert.title ?? alert.reason ?? alert.category.label;
+const open = alert.status === 'OPEN';
+const sev = severityClass(alert.severity.value);
+---
+
+<Base title={title} description={`${alert.severity.label}, ${where(alert)}: ${title}`}>
+  <a class="back" href="/alerts/">← All trail alerts</a>
+
+  <div class:list={['alert-hero', sev, { done: !open }]}>
+    <div class="alert-card-top">
+      <span class:list={['sev', sev]}>{alert.severity.label}</span>
+      {open ? <span class="tag">Active</span> : <span class="tag">Resolved</span>}
+      <span class="alert-where">{alert.number}</span>
+    </div>
+    <h1>{title}</h1>
+    <dl class="alert-facts">
+      <div><dt>Where</dt><dd>{where(alert)}</dd></div>
+      <div><dt>Category</dt><dd>{alert.category.label}</dd></div>
+      <div><dt>Published</dt><dd>{formatDateTime(new Date(alert.publishedAt))}</dd></div>
+      {
+        alert.closedAt ? (
+          <div><dt>Resolved</dt><dd>{formatDateTime(new Date(alert.closedAt))}</dd></div>
+        ) : (
+          <div><dt>Last update</dt><dd>{formatDateTime(new Date(alert.updatedAt))}</dd></div>
+        )
+      }
+    </dl>
+  </div>
+
+  <div class="card prose">
+    {alert.impact && (<><h2>What's happening</h2><p>{alert.impact}</p></>)}
+    {alert.action && (<><h2>What to do</h2><p>{alert.action}</p></>)}
+    {alert.resolution && (<><h2>Resolution</h2><p>{alert.resolution}</p></>)}
+    {alert.reason && alert.reason !== title && (<><h2>Reason</h2><p>{alert.reason}</p></>)}
+    {
+      alert.link && (
+        <p>
+          <a class="button" href={alert.link} rel="noopener noreferrer">{alert.linkLabel ?? 'Learn more'} →</a>
+        </p>
+      )
+    }
+  </div>
+
+  {
+    alert.history.length > 0 && (
+      <>
+        <h2>Timeline</h2>
+        <ol class="timeline card">
+          {timeline(alert).map((step) => (
+            <li class:list={[severityClass(step.severity.value), { done: step.kind === 'CLOSED' }]}>
+              <div class="timeline-head">
+                <strong>{KIND_LABEL[step.kind]}</strong>
+                <span class:list={['sev', 'sev-small', severityClass(step.severity.value)]}>{step.severity.label}</span>
+                <span class="small muted">{formatDateTime(new Date(step.createdAt))}</span>
+              </div>
+              {(step.message ?? step.title) && <p>{step.message ?? step.title}</p>}
+            </li>
+          ))}
+        </ol>
+      </>
+    )
+  }
+  <p class="small muted">Times are Sri Lanka time.</p>
+</Base>

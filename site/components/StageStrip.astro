@@ -1,0 +1,38 @@
+---
+import { alertHref, severityClass, stages } from '../lib/alerts.ts';
+
+const LABEL = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
+---
+
+{
+  stages.length > 0 && (
+    <div class="card stages">
+      <div class="stages-head">
+        <span class="stages-title">Stages</span>
+        <ul class="stages-legend" aria-hidden="true">
+          {Object.entries(LABEL).map(([sev, label]) => (
+            <li><span class:list={['swatch', severityClass(sev as keyof typeof LABEL)]} />{label}</li>
+          ))}
+        </ul>
+      </div>
+      <ol class="stage-strip">
+        {stages.map((stage) => {
+          const label = `Stage ${stage.number}: ${LABEL[stage.severity]}${stage.alert ? `, ${stage.alert.title ?? stage.alert.category.label}` : ''}`;
+          return (
+            <li>
+              {stage.alert ? (
+                <a class:list={['stage', severityClass(stage.severity)]} href={alertHref(stage.alert)} title={label} aria-label={label}>
+                  {stage.number}
+                </a>
+              ) : (
+                <span class:list={['stage', severityClass(stage.severity)]} title={label} aria-label={label}>
+                  {stage.number}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  )
+}

@@ -1,0 +1,46 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { STATUS_LABEL, incidents, type Incident } from '../../lib/incidents.ts';
+import { formatDateTime, systemById } from '../../lib/status.ts';
+import { formatDuration } from '../../../scripts/lib/state.ts';
+
+/**
+ * Lists one page per incident note, named after its file.
+ *
+ * @returns Each incident's id as the route, with the incident as the page's props.
+ */
+export function getStaticPaths() {
+  return incidents.map((incident) => ({ params: { id: incident.id }, props: { incident } }));
+}
+
+interface Props {
+  incident: Incident;
+}
+
+const { incident } = Astro.props;
+const { data } = incident;
+const { Content } = await render(incident);
+const finished = data.status === 'resolved' || data.status === 'completed';
+const names = data.systems.map((id) => systemById(id)?.config.name ?? id).join(', ');
+const tone = finished ? 'done' : data.type === 'maintenance' ? 'maintenance' : data.severity;
+---
+
+<Base title={data.title} description={`${STATUS_LABEL[data.status]}: ${data.title}. Affects ${names}.`}>
+  <a class="back" href="/incidents/">← All incidents</a>
+  <h1>{data.title}</h1>
+  <p class="muted">
+    <span class="tag">{STATUS_LABEL[data.status]}</span>{' '}
+    {data.type === 'maintenance' ? <span class="tag">Maintenance</span> : <span class="tag">{data.severity}</span>}{' '}
+    Affects {names}
+  </p>
+  <p class="small muted">
+    {data.type === 'maintenance' ? 'Planned' : 'Started'}: {formatDateTime(data.started)}
+    {data.ended && <> · {finished ? 'Ended' : 'Planned end'}: {formatDateTime(data.ended)}</>}
+    {finished && data.ended && <> · Lasted {formatDuration(data.ended.getTime() - data.started.getTime())}</>}
+    {' · Sri Lanka time'}
+  </p>
+  <article class:list={['card', 'prose', 'incident', tone]}>
+    <Content />
+  </article>
+</Base>

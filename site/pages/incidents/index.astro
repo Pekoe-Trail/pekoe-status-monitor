@@ -1,0 +1,13 @@
+---
+import Base from '../../layouts/Base.astro';
+import IncidentList from '../../components/IncidentList.astro';
+import { incidents } from '../../lib/incidents.ts';
+---
+
+<Base title="Incidents" description="Every Pekoe Trail incident and planned maintenance, newest first.">
+  <h1>Incidents</h1>
+  <p class="muted">
+    Outages and planned maintenance, newest first. Follow new ones with the <a href="/incidents/rss.xml">RSS feed</a>.
+  </p>
+  <IncidentList items={incidents} empty="No incidents recorded yet." />
+</Base>

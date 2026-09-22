@@ -1,0 +1,70 @@
+---
+import { recentChecks, formatDate, type SystemView } from '../lib/status.ts';
+
+interface Props {
+  system: SystemView;
+  days: number;
+}
+
+const { system, days } = Astro.props;
+const checks = recentChecks(system.config.id, days);
+const W = 1000;
+const H = 100;
+
+const end = Date.now();
+const start = end - days * 24 * 60 * 60_000;
+const passing = checks.filter((c) => c.s !== 'down');
+const failing = checks.filter((c) => c.s === 'down');
+
+const sorted = passing.map((c) => c.ms).sort((a, b) => a - b);
+const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+const max = Math.max(p95, system.config.degradedMs) * 1.1;
+/**
+ * Places a check's time on the chart's horizontal axis.
+ *
+ * @param t The check's ISO time.
+ * @returns The x coordinate in the 0–1000 viewBox, to one decimal.
+ */
+const x = (t: string) => (((Date.parse(t) - start) / (end - start)) * W).toFixed(1);
+/**
+ * Places a response time on the chart's vertical axis. The scale tops out just above the
+ * 95th percentile (or the Degraded threshold), so one slow check doesn't flatten the rest;
+ * slower checks are clipped to the top.
+ *
+ * @param ms The response time in milliseconds.
+ * @returns The y coordinate in the 0–100 viewBox, to one decimal.
+ */
+const y = (ms: number) => (H - (Math.min(ms, max) / max) * H).toFixed(1);
+
+const line = passing.map((c, i) => `${i === 0 ? 'M' : 'L'}${x(c.t)},${y(c.ms)}`).join('');
+const area = passing.length ? `${line}L${x(passing.at(-1)!.t)},${H}L${x(passing[0].t)},${H}Z` : '';
+const average = passing.length ? Math.round(sorted.reduce((a, b) => a + b, 0) / sorted.length) : null;
+const gridLines = [0.25, 0.5, 0.75].map((f) => H * f);
+---
+
+<div class="card chart">
+  {
+    checks.length === 0 ? (
+      <p class="muted">No checks in the last {days} days.</p>
+    ) : (
+      <>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`Response time over the last ${days} days${average !== null ? `, ${average} ms on average` : ''}. ${failing.length} failed checks.`}
+        >
+          {gridLines.map((gy) => <line class="grid" x1="0" x2={W} y1={gy} y2={gy} />)}
+          <path class="area" d={area} />
+          <path class="line" d={line} />
+          {failing.map((c) => <rect class="fail" x={x(c.t)} y={H - 6} width="3" height="6" />)}
+        </svg>
+        <div class="chart-axis">
+          <span>{formatDate(new Date(start))}</span>
+          <span>{average !== null ? `${average} ms average · top of chart ${Math.round(max)} ms` : ''}</span>
+          <span>Now</span>
+        </div>
+      </>
+    )
+  }
+</div>

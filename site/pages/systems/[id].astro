@@ -1,0 +1,66 @@
+---
+import Base from '../../layouts/Base.astro';
+import IncidentList from '../../components/IncidentList.astro';
+import ResponseChart from '../../components/ResponseChart.astro';
+import StatusLabel from '../../components/StatusLabel.astro';
+import UptimeBars from '../../components/UptimeBars.astro';
+import { forSystem } from '../../lib/incidents.ts';
+import { formatPercent, systems, type SystemView } from '../../lib/status.ts';
+
+/**
+ * Lists one page per system in the config.
+ *
+ * @returns Each system's id as the route, with its view as the page's props.
+ */
+export function getStaticPaths() {
+  return systems.map((system) => ({ params: { id: system.config.id }, props: { system } }));
+}
+
+interface Props {
+  system: SystemView;
+}
+
+const { system } = Astro.props;
+const { config, uptime } = system;
+const stats = [
+  ['Last 24 hours', uptime.day],
+  ['Last 7 days', uptime.week],
+  ['Last 30 days', uptime.month],
+  ['Last 90 days', uptime.quarter],
+] as const;
+---
+
+<Base title={config.name} description={`Uptime and incident history for ${config.name}.`}>
+  <a class="back" href="/">← All systems</a>
+  <div class="system-head">
+    <h1>{config.name}</h1>
+    <StatusLabel status={system.status} />
+  </div>
+  <p class="muted">
+    {config.description}
+    {config.url && <> · <a href={config.url}>{new URL(config.url).host}</a></>}
+  </p>
+
+  <h2>Uptime</h2>
+  <dl class="stats">
+    {
+      stats.map(([label, value]) => (
+        <div>
+          <dt>{label}</dt>
+          <dd>{formatPercent(value)}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  <h2>Last 90 days</h2>
+  <div class="card system">
+    <UptimeBars system={system} />
+  </div>
+
+  <h2>Response time, last 7 days</h2>
+  <ResponseChart system={system} days={7} />
+
+  <h2>Incidents</h2>
+  <IncidentList items={forSystem(config.id)} empty="No incidents recorded." />
+</Base>

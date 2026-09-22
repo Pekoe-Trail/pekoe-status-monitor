@@ -1,0 +1,11 @@
+---
+import { STATUS_TEXT, type SystemView } from '../lib/status.ts';
+
+interface Props {
+  status: SystemView['status'];
+}
+
+const { status } = Astro.props;
+---
+
+<span class:list={['status', status]}><span class="dot" aria-hidden="true"></span>{STATUS_TEXT[status]}</span>

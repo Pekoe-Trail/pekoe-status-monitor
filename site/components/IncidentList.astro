@@ -1,0 +1,55 @@
+---
+import { STATUS_LABEL, type Incident } from '../lib/incidents.ts';
+import { formatDateTime, systemById } from '../lib/status.ts';
+import { formatDuration } from '../../scripts/lib/state.ts';
+
+interface Props {
+  items: Incident[];
+  empty?: string;
+}
+
+const { items, empty = 'Nothing to report.' } = Astro.props;
+
+/**
+ * Picks the colour class for an incident's card.
+ *
+ * @param incident The incident or maintenance.
+ * @returns `done` once finished, `maintenance` for planned work, otherwise its severity.
+ */
+function tone({ data }: Incident) {
+  if (data.status === 'resolved' || data.status === 'completed') return 'done';
+  return data.type === 'maintenance' ? 'maintenance' : data.severity;
+}
+
+/**
+ * Writes the line under an incident's title.
+ *
+ * @param incident The incident or maintenance.
+ * @returns The affected systems' names, the start time, and how long it lasted once
+ *   finished, separated by " · ".
+ */
+function meta({ data }: Incident) {
+  const names = data.systems.map((id) => systemById(id)?.config.name ?? id).join(', ');
+  const when = formatDateTime(data.started);
+  const duration =
+    data.ended && (data.status === 'resolved' || data.status === 'completed')
+      ? ` · lasted ${formatDuration(data.ended.getTime() - data.started.getTime())}`
+      : '';
+  return `${names} · ${when}${duration}`;
+}
+---
+
+<div class="card">
+  {items.length === 0 && <p class="empty">{empty}</p>}
+  {
+    items.map((incident) => (
+      <a class:list={['incident', tone(incident)]} href={`/incidents/${incident.id}/`}>
+        <div class="incident-title">
+          {incident.data.title} <span class="tag">{STATUS_LABEL[incident.data.status]}</span>{' '}
+          {incident.data.type === 'maintenance' && <span class="tag">Maintenance</span>}
+        </div>
+        <div class="incident-meta">{meta(incident)}</div>
+      </a>
+    ))
+  }
+</div>
