@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { fetchAlerts, mergeAlerts } from './lib/alerts.ts';
+import { fetchAlerts, lastUpdatedAt, mergeAlerts, type Alert } from './lib/alerts.ts';
 import { loadConfig, type SystemConfig } from './lib/config.ts';
 import { runCheck } from './lib/checks.ts';
 import { inMaintenance, readMaintenance } from './lib/incidents.ts';
@@ -90,12 +90,23 @@ if (config.alerts && (!only || only.includes('alerts'))) {
   let alerts = saved?.alerts;
   let updatedAt = saved?.updatedAt;
   let changed = false;
+  const { historyUrl, maxPages } = config.alerts;
+  const since = lastUpdatedAt(saved?.alerts ?? []);
   try {
-    const read = await fetchAlerts(config.alerts.historyUrl, { timeoutMs, maxPages: config.alerts.maxPages });
+    let read: Alert[];
+    try {
+      read = await fetchAlerts(historyUrl, { timeoutMs, maxPages, updatedSince: since });
+    } catch (error) {
+      // An API that doesn't know the watermark yet still answers a plain read.
+      if (!since || !/^HTTP 4\d\d$/.test(error instanceof Error ? error.message : '')) throw error;
+      console.log(`${'alerts'.padEnd(22)} ${failure(error)} for the changes since ${since}; reading it all`);
+      read = await fetchAlerts(historyUrl, { timeoutMs, maxPages });
+    }
     alerts = mergeAlerts(saved?.alerts ?? [], read);
     updatedAt = new Date().toISOString();
     changed = true;
-    console.log(`${'alerts'.padEnd(22)} ${read.length} read, ${alerts.length} in the archive`);
+    const what = since ? `changed since ${since}` : 'read in full';
+    console.log(`${'alerts'.padEnd(22)} ${read.length} ${what}, ${alerts.length} in the archive`);
   } catch (error) {
     console.log(`${'alerts'.padEnd(22)} not updated: ${failure(error)}`);
   }

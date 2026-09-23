@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAlerts, mergeAlerts, openAlerts, parsePage, type Alert } from '../scripts/lib/alerts.ts';
+import {
+  fetchAlerts,
+  lastUpdatedAt,
+  mergeAlerts,
+  openAlerts,
+  parsePage,
+  type Alert,
+} from '../scripts/lib/alerts.ts';
 
 /**
  * Builds a PSA as the API returns it, with some fields the page doesn't use.
@@ -104,6 +111,26 @@ describe('fetchAlerts', () => {
     ]);
   });
 
+  it('asks only for the alerts changed since the watermark', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(body([psa()]))));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchAlerts('https://api.example.com/v1/alerts/public/history', {
+      timeoutMs: 1000,
+      maxPages: 4,
+      updatedSince: '2026-09-23T04:30:00.000Z',
+    });
+    expect(fetch.mock.calls[0][0].searchParams.get('updatedSince')).toBe('2026-09-23T04:30:00.000Z');
+  });
+
+  it('asks for everything when there is no watermark', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(body([psa()]))));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchAlerts('https://api.example.com/x', { timeoutMs: 1000, maxPages: 1 });
+    expect(fetch.mock.calls[0][0].searchParams.has('updatedSince')).toBe(false);
+  });
+
   it('throws on an error response', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
     await expect(fetchAlerts('https://api.example.com/x', { timeoutMs: 1000, maxPages: 1 })).rejects.toThrow('HTTP 404');
@@ -121,6 +148,24 @@ describe('openAlerts', () => {
       ]),
     );
     expect(openAlerts(alerts as Alert[]).map((a) => a.id)).toEqual(['closure', 'new-advisory', 'old-advisory']);
+  });
+});
+
+describe('lastUpdatedAt', () => {
+  const at = (id: string, updatedAt: string) => ({ ...psa({ id, updatedAt }) }) as unknown as Alert;
+
+  it('takes the newest change in the archive, whatever the order', () => {
+    expect(
+      lastUpdatedAt([
+        at('a', '2026-09-20T06:00:00.000Z'),
+        at('b', '2026-09-23T04:30:00.000Z'),
+        at('c', '2026-01-01T00:00:00.000Z'),
+      ]),
+    ).toBe('2026-09-23T04:30:00.000Z');
+  });
+
+  it('has no watermark for an empty archive', () => {
+    expect(lastUpdatedAt([])).toBeUndefined();
   });
 });
 

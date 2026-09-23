@@ -84,6 +84,12 @@ Trail alerts (PSAs) are published in the admin panel, not here. Each run reads t
 the public `alerts.historyUrl` in [`config/systems.yml`](config/systems.yml) and keeps only
 the fields the [Trail page](https://status.thepekoetrail.org/trail) shows.
 
+Only the first run reads the whole register. After that a run asks for the alerts changed
+since the newest change it already has, using the `updatedSince` watermark, so it normally
+reads one short page. An alert's `updatedAt` moves whenever it is published, updated or
+closed, so a closure of a years-old alert arrives the same way a new one does. An API that
+doesn't know `updatedSince` yet answers a plain read instead.
+
 They are kept for good, one file per year under `alerts/`, so years of trail history stay on
 the stage pages. A run updates the alerts it read and adds new ones, and never drops one it
 no longer reaches, whether because the read is capped at `alerts.maxPages` or because the

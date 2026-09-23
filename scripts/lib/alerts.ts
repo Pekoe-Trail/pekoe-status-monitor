@@ -99,11 +99,12 @@ function safeLink(item: Alert): Alert {
  * @param url The public history endpoint.
  * @param options.timeoutMs How long to wait for each page.
  * @param options.maxPages The most pages to read.
+ * @param options.updatedSince Read only the alerts changed at or after this instant.
  * @returns The alerts from every page read, with non-https links removed.
  */
 export async function fetchAlerts(
   url: string,
-  { timeoutMs, maxPages }: { timeoutMs: number; maxPages: number },
+  { timeoutMs, maxPages, updatedSince }: { timeoutMs: number; maxPages: number; updatedSince?: string },
 ): Promise<Alert[]> {
   const alerts: Alert[] = [];
   let pageNumber: number | null = 1;
@@ -111,6 +112,7 @@ export async function fetchAlerts(
     const pageUrl = new URL(url);
     pageUrl.searchParams.set('perPage', '50');
     pageUrl.searchParams.set('pageNumber', String(pageNumber));
+    if (updatedSince) pageUrl.searchParams.set('updatedSince', updatedSince);
     const res = await fetch(pageUrl, {
       headers: { accept: 'application/json', 'user-agent': 'pekoe-status' },
       signal: AbortSignal.timeout(timeoutMs),
@@ -121,6 +123,21 @@ export async function fetchAlerts(
     pageNumber = next;
   }
   return alerts;
+}
+
+/**
+ * Gives the watermark for the next read: the newest change the archive has seen. An alert's
+ * `updatedAt` moves when it is published, updated or closed, so asking for everything from
+ * this instant onwards catches a closure of an old alert as well as a new one.
+ *
+ * @param alerts The archive.
+ * @returns The newest `updatedAt`, or undefined when the archive is empty.
+ */
+export function lastUpdatedAt(alerts: Alert[]): string | undefined {
+  return alerts.reduce<string | undefined>(
+    (newest, alert) => (!newest || alert.updatedAt > newest ? alert.updatedAt : newest),
+    undefined,
+  );
 }
 
 /**

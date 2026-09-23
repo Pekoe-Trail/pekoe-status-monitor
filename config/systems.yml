@@ -28,11 +28,13 @@ settings:
 # Read every run from the API's public history; the last good copy is kept if it fails.
 #   historyUrl  public history of every PSA (global and stage) with each update's
 #               channels, paged 50 at a time, newest first
-#   maxPages    pages to read, so at most maxPages × 50 alerts are shown
+#   maxPages    pages to read in one run, so at most maxPages × 50 alerts. Only the first
+#               run reads more than a page: later runs ask for the alerts changed since the
+#               newest change already saved
 #   stages      number of trail stages, for the stage strip on the Trail page
 alerts:
   historyUrl: https://api.pekoetrailapp.com/v1/alerts/public/history
-  maxPages: 4
+  maxPages: 40
   stages: 22
 
 systems:
