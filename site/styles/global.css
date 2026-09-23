@@ -1323,29 +1323,24 @@ a.stage.sev-ok:hover {
 .lost {
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 8px;
   max-width: 520px;
-  margin: 8vh auto 10vh;
+  margin: 10vh auto 12vh;
   text-align: center;
-}
-
-.lost img {
-  width: 180px;
-  height: auto;
-  margin-bottom: 10px;
 }
 
 .lost-code {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.22em;
+  color: var(--brand-strong);
+  font-size: clamp(5rem, 22vw, 9rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 
 .lost h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
 }
 
 .lost p.muted {
@@ -1353,21 +1348,7 @@ a.stage.sev-ok:hover {
 }
 
 .lost-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
   margin-top: 18px;
-}
-
-.button-quiet {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.button-quiet:hover {
-  background: var(--surface);
 }
 
 .back {
