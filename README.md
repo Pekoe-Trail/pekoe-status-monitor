@@ -1,32 +1,68 @@
 # Pekoe Trail status
 
 The source of [status.thepekoetrail.org](https://status.thepekoetrail.org): a public status
-page for the Pekoe Trail website, app and services, with uptime history and incident notes.
+page for the Pekoe Trail, covering both the trail itself and the website, app and services.
 
 It runs entirely on GitHub, not on our own servers, so it keeps working when they don't.
 
 - A [scheduled workflow](.github/workflows/check.yml) checks every system about every 10
   minutes, saves the results to the `status-data` branch, and tells developers when a
   system goes down or recovers.
-- The site is static HTML built with [Astro](https://astro.build) from those results and
-  the notes in [`incidents/`](incidents/), and hosted on GitHub Pages.
+- The site is static HTML built with [Astro](https://astro.build) from those results, the
+  trail alerts read from the public API, and the notes in [`incidents/`](incidents/). It is
+  hosted on GitHub Pages.
 
 This repository is public so the checks and the page can run on GitHub, and so anyone can
 see how status is measured. It is not open source, and we don't accept contributions:
 issues are off, and only our team can open pull requests. See [LICENSE](LICENSE).
+
+## Contents
+
+- [Pages](#pages)
+- [Layout](#layout)
+- [Status data](#status-data)
+- [Trail alerts](#trail-alerts)
+- [Working locally](#working-locally)
+- [Adding or changing a system](#adding-or-changing-a-system)
+- [Incident and maintenance notes](#incident-and-maintenance-notes)
+- [Notifications](#notifications)
+- [How the numbers are worked out](#how-the-numbers-are-worked-out)
+- [Setup](#setup)
+- [Limits](#limits)
+- [Licence](#licence)
+
+## Pages
+
+The two halves of the site are separate and don't link to each other. There is no home
+page: `/` redirects to `/system`.
+
+| Page | What it shows |
+|---|---|
+| `/trail` | The trail's colour now, a button per stage, and the alerts in force |
+| `/stages/<n>` | One stage: its colour, active alerts, the past year day by day, and that year's updates |
+| `/stages/<n>/<year>` | The same for one calendar year |
+| `/stages/overall` | The whole trail, in the same shape, reached from the **All stages** button |
+| `/alerts/<psa>` | One trail alert with its full history |
+| `/system` | Every system's state, with its last 24 hours of checks |
+| `/systems/<id>` | One system: uptime, 24 hours of checks, 30 days of checks, 90 days of uptime, response times, incidents |
+| `/incidents`, `/incidents/<id>` | Incident and maintenance notes |
+| `/status.json`, `/incidents/rss.xml` | The current state as JSON, and incidents as a feed |
+
+Addresses carry no trailing slash: `/trail`, not `/trail/`. Anything else lands on the
+site's own 404 page.
 
 ## Layout
 
 | Path | What |
 |---|---|
 | [`config/systems.yml`](config/systems.yml) | The systems, how each is checked, and thresholds |
-| [`incidents/`](incidents/) | Incident and maintenance notes, one Markdown file each ([how to write one](incidents/README.md)) |
+| [`incidents/`](incidents/) | Incident and maintenance notes, one Markdown file each |
 | [`scripts/`](scripts/) | The checks and notifications (`npm run check`) |
 | [`site/`](site/) | The Astro site |
 | [`tests/`](tests/) | Unit tests (`npm test`) |
-| `status-data` branch | Check results, written only by the workflow |
+| `status-data` branch | Check results and trail alerts, written only by the workflow |
 
-### Status data
+## Status data
 
 The `status-data` branch holds the results, so the commit every 10 minutes never touches
 `main`:
@@ -34,17 +70,31 @@ The `status-data` branch holds the results, so the commit every 10 minutes never
 | File | Content |
 |---|---|
 | `current.json` | Each system's latest state, and what developers have been told |
-| `checks/<system>/<YYYY-MM-DD>.json` | Every check, kept for 7 days |
+| `checks/<system>/<YYYY-MM-DD>.json` | Every check, kept for `keepCheckDays` (30) |
 | `daily/<system>.json` | Totals for each day, kept indefinitely |
-| `alerts.json` | Trail alerts (PSAs), read each run from the API's public history |
+| `alerts/<YYYY>.json` | Trail alerts published that year |
+| `alerts/meta.json` | When the alerts were last read |
 
 Days are Sri Lanka calendar days. A check stores only its time, state, response time,
 HTTP status and a coarse error type; never anything from the response.
 
-Trail alerts are published in the admin panel. Each run reads them from the public
-`alerts.historyUrl` in [`config/systems.yml`](config/systems.yml) and keeps only the fields
-the [Trail alerts page](https://status.thepekoetrail.org/alerts/) shows. If the API can't be
-reached, the last copy stays, so the page keeps showing the alert history.
+## Trail alerts
+
+Trail alerts (PSAs) are published in the admin panel, not here. Each run reads them from
+the public `alerts.historyUrl` in [`config/systems.yml`](config/systems.yml) and keeps only
+the fields the [Trail page](https://status.thepekoetrail.org/trail) shows.
+
+They are kept for good, one file per year under `alerts/`, so years of trail history stay on
+the stage pages. A run updates the alerts it read and adds new ones, and never drops one it
+no longer reaches, whether because the read is capped at `alerts.maxPages` or because the
+alert left the register. A year's file is rewritten only when that year changed. If the API
+can't be reached, the last copy stays, so the page keeps showing the alert history.
+
+**The yearly map** on a stage page colours each day with the stage's colour at the end of
+that day, as the website banner showed it. Only updates sent to the website count, so a
+push-only reminder doesn't repaint the map; a colour carries over from day to day until a
+website update changes it, and a resolved alert leaves the stage Open (green). Clicking a
+day scrolls to the update that set its colour.
 
 ## Working locally
 
@@ -61,14 +111,88 @@ npm run typecheck
 
 Without `MONITOR_EMAIL` and `MONITOR_PASSWORD` the sign-in check is skipped, and without
 the notification secrets nothing is sent. To check some systems only:
-`STATUS_ONLY=api,website npm run check`. Don't commit or push from `data/`; the workflow
-owns that branch.
+`STATUS_ONLY=api,website npm run check`. `STATUS_DATA_DIR` points the scripts and the build
+at another data folder. Don't commit or push from `data/`; the workflow owns that branch.
 
 ## Adding or changing a system
 
 Edit [`config/systems.yml`](config/systems.yml) in a pull request. Each system needs a
 stable `id`: it names the data files and is used in incident notes, so never rename it.
 Removing a system hides it from the page; its old data stays on the `status-data` branch.
+
+## Incident and maintenance notes
+
+Each file in [`incidents/`](incidents/) is one incident or one planned maintenance. Add or
+update one with a pull request; it goes live a few minutes after merging. A system's colour
+comes from the checks, so a note explains what happened; it doesn't set the status.
+
+### File name
+
+`YYYY-MM-DD-short-slug.md`, dated the day it started, for example
+`2026-09-21-api-unavailable.md`. The name becomes the page's URL, so don't rename a
+published file.
+
+### Incident
+
+```markdown
+---
+title: API unavailable
+severity: major            # minor | major | critical
+systems: [api, api-login]  # ids from config/systems.yml
+status: resolved           # investigating | identified | monitoring | resolved
+started: 2026-09-21T08:10:00+05:30
+ended: 2026-09-21T08:55:00+05:30   # required once resolved
+---
+
+**Resolved, 08:55.** Service restored after the database was restarted.
+
+**Identified, 08:25.** The database ran out of connections.
+
+**Investigating, 08:12.** The API is returning errors. We're looking into it.
+```
+
+- Put the **newest update at the top**, each starting with the bold status and time.
+- Change `status` with each update, and add `ended` when it's resolved.
+- Write for hikers, not developers: what's affected, what they should do, and when it's
+  fixed. Leave out internal details such as server names, IP addresses and error text.
+- After a serious outage, a longer write-up (a postmortem) can go at the bottom under a
+  `## What happened` heading.
+
+### Planned maintenance
+
+```markdown
+---
+title: Database upgrade
+type: maintenance
+systems: [api, api-login]
+status: scheduled          # scheduled | in-progress | completed
+started: 2026-10-01T22:00:00+05:30   # planned start
+ended: 2026-10-01T23:30:00+05:30     # planned end
+---
+
+The app and sign-in may be unavailable for up to 30 minutes while we upgrade the database.
+```
+
+Between `started` and `ended`, the listed systems going down **don't notify developers**.
+If a system is still down when the window ends, the next check reports it. A note written
+after the fact silences nothing.
+
+### Where a note appears
+
+| State | Where |
+|---|---|
+| Any status but `resolved` | "Happening now" at the top of `/system` |
+| `scheduled` maintenance still to come | "Planned maintenance" on `/system` |
+| Finished, started in the last 14 days | "Past 14 days" on `/system` |
+| Always | `/incidents`, each listed system's page, and the RSS feed |
+
+### Rules
+
+- **No HTML.** Use Markdown only; the tests fail on any HTML tag.
+- Times are in Sri Lanka time (`+05:30`).
+- `status` must match `type`, at least one system must be listed, `ended` can't be before
+  `started`, and both a resolved incident and any maintenance need `ended`. The build fails
+  otherwise.
 
 ## Notifications
 
@@ -83,6 +207,23 @@ after that. Nothing is sent for Down checks during a planned maintenance window.
 
 A channel whose secrets aren't set is skipped. SMS costs money per message, so it's kept
 for the systems that affect visitors: the websites, the API and sign-in, but not the CDN.
+
+## How the numbers are worked out
+
+Every check adds to that day's totals in `daily/<system>.json`: how many checks ran, how
+many were up, slow or down, and the summed response time of the ones that answered.
+
+- **Uptime** over a window is `(checks − down) ÷ checks` across the days in it, so a slow
+  check still counts as up, and a day with fewer checks counts for less. With no checks at
+  all the page shows `–`, not 100%.
+- **A day's bar** is grey without checks, red below 95% uptime, amber with any down check
+  or more than half slow, otherwise green.
+- **The 24-hour figure** comes from the individual checks of the last 24 hours, so it is a
+  rolling day rather than a calendar one.
+- **The 30-day grid** draws one block per 10-minute slot from the detailed checks; a slot
+  with no check stays grey, which is how a missed workflow run shows up.
+- **The response chart** scales to just above the 95th percentile, so one very slow check
+  doesn't flatten the rest, and red ticks along the bottom mark failed checks.
 
 ## Setup
 
