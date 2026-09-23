@@ -74,7 +74,7 @@ systems:
       expectText: Shop
 
   - id: api
-    name: App and API
+    name: API
     description: Serves the mobile app and the portals
     group: Platform
     critical: true
@@ -86,7 +86,7 @@ systems:
       expectText: '"data":"OK"'
 
   - id: api-login
-    name: Sign-in
+    name: Auth
     description: Signing in to the app and portals
     group: Platform
     critical: true
@@ -97,7 +97,7 @@ systems:
       baseUrl: https://api.pekoetrailapp.com/v1
 
   - id: cdn
-    name: Images and files
+    name: CDN
     description: Photos, maps and downloads
     group: Platform
     degradedMs: 2000
