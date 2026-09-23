@@ -1,9 +1,8 @@
 name: Check
 
-# Every 10 minutes, off the busy :00 minute. GitHub often starts scheduled runs late.
+# Triggered every 10 minutes by an EventBridge schedule in AWS, which calls the dispatch
+# API. GitHub's own cron never fired for this repository.
 on:
-  schedule:
-    - cron: '3-59/10 * * * *'
   workflow_dispatch:
 
 permissions: {}
