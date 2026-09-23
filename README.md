@@ -5,9 +5,10 @@ page for the Pekoe Trail, covering both the trail itself and the website, app an
 
 It runs entirely on GitHub, not on our own servers, so it keeps working when they don't.
 
-- A [scheduled workflow](.github/workflows/check.yml) checks every system about every 10
-  minutes, saves the results to the `status-data` branch, and tells developers when a
-  system goes down or recovers.
+- A [workflow](.github/workflows/check.yml) checks every system every 10 minutes, saves the
+  results to the `status-data` branch, and tells developers when a system goes down or
+  recovers. An EventBridge schedule in AWS calls the dispatch API to start it; GitHub's own
+  cron never fired for this repository.
 - The site is static HTML built with [Astro](https://astro.build) from those results, the
   trail alerts read from the public API, and the notes in [`incidents/`](incidents/). It is
   hosted on GitHub Pages.
@@ -263,9 +264,9 @@ One-time steps for the repository and domain.
 
 ## Limits
 
-- **Scheduled runs are not punctual.** GitHub often starts them 10–30 minutes late when
-  busy, and sometimes skips one. A short outage can be missed. The page shows when the last
-  check ran, and warns when it's more than an hour old.
+- **A run can be late or missed.** The page shows when the last check ran, and warns when
+  it's more than an hour old, so a stalled trigger is visible rather than silent. A short
+  outage between runs can still be missed.
 - **Checks run from GitHub's servers** in the US and Europe, not from Sri Lanka.
 - **If GitHub is down,** checks stop and the page keeps its last state.
 - The sign-in check logs in on every run. Filter the monitoring account out of
