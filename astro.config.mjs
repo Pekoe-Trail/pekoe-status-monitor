@@ -12,7 +12,6 @@ export default defineConfig({
   },
   devToolbar: { enabled: false },
   redirects: {
-    '/': '/system',
     '/alerts': '/trail',
   },
 });
