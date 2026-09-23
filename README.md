@@ -7,8 +7,8 @@ It runs entirely on GitHub, not on our own servers, so it keeps working when the
 
 - A [workflow](.github/workflows/check.yml) checks every system every 10 minutes, saves the
   results to the `status-data` branch, and tells developers when a system goes down or
-  recovers. An EventBridge schedule in AWS calls the dispatch API to start it; GitHub's own
-  cron never fired for this repository.
+  recovers. A Cloudflare Worker starts it on a cron trigger, because GitHub's own scheduler
+  proved too slow to rely on: see [Scheduling the checks](#scheduling-the-checks).
 - The site is static HTML built with [Astro](https://astro.build) from those results, the
   trail alerts read from the public API, and the notes in [`incidents/`](incidents/). It is
   hosted on GitHub Pages.
@@ -25,6 +25,7 @@ issues are off, and only our team can open pull requests. See [LICENSE](LICENSE)
 - [Trail alerts](#trail-alerts)
 - [Working locally](#working-locally)
 - [Adding or changing a system](#adding-or-changing-a-system)
+- [Scheduling the checks](#scheduling-the-checks)
 - [Incident and maintenance notes](#incident-and-maintenance-notes)
 - [Notifications](#notifications)
 - [How the numbers are worked out](#how-the-numbers-are-worked-out)
@@ -47,7 +48,6 @@ page: `/` redirects to `/system`.
 | `/system` | Every system's state, with its last 24 hours of checks |
 | `/systems/<id>` | One system: uptime, 24 hours of checks, 30 days of checks, 90 days of uptime, response times, incidents |
 | `/incidents`, `/incidents/<id>` | Incident and maintenance notes |
-| `/status.json`, `/incidents/rss.xml` | The current state as JSON, and incidents as a feed |
 
 Addresses carry no trailing slash: `/trail`, not `/trail/`. Anything else lands on the
 site's own 404 page.
@@ -126,6 +126,82 @@ at another data folder. Don't commit or push from `data/`; the workflow owns tha
 Edit [`config/systems.yml`](config/systems.yml) in a pull request. Each system needs a
 stable `id`: it names the data files and is used in incident notes, so never rename it.
 Removing a system hides it from the page; its old data stays on the `status-data` branch.
+
+## Scheduling the checks
+
+`check.yml` has no cron of its own. GitHub's scheduler took about five hours to fire the
+first run on this repository and then fired once, which is no use for a monitor. A
+**Cloudflare Worker** calls GitHub's dispatch API every ten minutes instead. It is free:
+144 calls a day against a 100,000 request daily allowance, and one of five cron triggers.
+
+### 1. A token for the Worker
+
+GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token:
+
+| Field | Value |
+|---|---|
+| Resource owner | `Pekoe-Trail` |
+| Repository access | Only select repositories → `pekoe-status-monitor` |
+| Permissions | **Actions: Read and write**, nothing else |
+| Expiration | Note the date; the checks stop silently when it lapses |
+
+### 2. The Worker
+
+Cloudflare dashboard → **Workers & Pages** → **Create** → **Hello World** → name it
+`pekoe-status-trigger` → Deploy → **Edit code**, and replace the file with:
+
+```js
+export default {
+  /**
+   * Starts the status check on its schedule.
+   *
+   * @param event The cron event.
+   * @param env The Worker's bindings, holding GITHUB_TOKEN.
+   */
+  async scheduled(event, env) {
+    const res = await fetch(
+      'https://api.github.com/repos/Pekoe-Trail/pekoe-status-monitor/actions/workflows/check.yml/dispatches',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'pekoe-status-trigger',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ref: 'main' }),
+      },
+    );
+    if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
+  },
+};
+```
+
+### 3. The secret and the trigger
+
+In the Worker's **Settings**:
+
+- **Variables and Secrets** → Add → type **Secret**, name `GITHUB_TOKEN`, value the token
+  on its own. The code adds `Bearer`, so including it here gives a 401.
+- **Trigger Events** → Add → **Cron Trigger** → `*/10 * * * *`.
+
+Leave the `workers.dev` URL disabled. The Worker needs no public address, and without one
+nobody can start a run from the internet.
+
+### 4. Check it
+
+A run tagged `workflow_dispatch` should appear in Actions within ten minutes, and the
+"Last checked" time in the footer of [the status page](https://status.thepekoetrail.org)
+should move. The Worker's **Logs** tab shows each invocation; a failure throws with the
+status GitHub returned, so it shows up as an error rather than passing quietly.
+
+| Status | Cause |
+|---|---|
+| 401 | Wrong token, or `Bearer` included in the secret |
+| 403 | Token lacks Actions: write, or SSO isn't authorised |
+| 404 | Wrong repository or workflow file name |
+| 422 | `ref` is not a branch |
 
 ## Incident and maintenance notes
 
@@ -260,13 +336,18 @@ One-time steps for the repository and domain.
    permissions to read-only, turn off issues, discussions, wiki and projects, limit pull
    requests to collaborators, require approval for workflow runs from all outside collaborators, and turn
    on Dependabot alerts and private vulnerability reporting. See [SECURITY.md](SECURITY.md).
-9. Run the **Check** workflow once by hand (Actions → Check → Run workflow).
+9. **Schedule:** set up the Cloudflare Worker that starts the checks — see
+   [Scheduling the checks](#scheduling-the-checks).
+10. Run the **Check** workflow once by hand (Actions → Check → Run workflow).
 
 ## Limits
 
 - **A run can be late or missed.** The page shows when the last check ran, and warns when
   it's more than an hour old, so a stalled trigger is visible rather than silent. A short
   outage between runs can still be missed.
+- **The trigger runs on Cloudflare**, which also fronts the sites being checked. A
+  Cloudflare outage stops new checks; the page stays up on GitHub Pages and goes visibly
+  stale. The token behind it expires, and the checks stop quietly when it does.
 - **Checks run from GitHub's servers** in the US and Europe, not from Sri Lanka.
 - **If GitHub is down,** checks stop and the page keeps its last state.
 - The sign-in check logs in on every run. Filter the monitoring account out of

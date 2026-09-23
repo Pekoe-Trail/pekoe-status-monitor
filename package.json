@@ -15,7 +15,6 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/rss": "^4.0.19",
     "astro": "^7.3.3",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
