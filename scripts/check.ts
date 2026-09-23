@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { fetchAlerts } from './lib/alerts.ts';
+import { fetchAlerts, mergeAlerts } from './lib/alerts.ts';
 import { loadConfig, type SystemConfig } from './lib/config.ts';
 import { runCheck } from './lib/checks.ts';
 import { inMaintenance, readMaintenance } from './lib/incidents.ts';
@@ -76,16 +76,28 @@ for (const id of Object.keys(current.systems)) {
 current.updatedAt = new Date().toISOString();
 store.writeCurrent(current);
 
+/**
+ * Describes why a read from the alerts API failed, without echoing anything it returned.
+ *
+ * @param error The error thrown.
+ * @returns `HTTP <status>`, or "failed".
+ */
+const failure = (error: unknown) =>
+  error instanceof Error && /^HTTP \d{3}$/.test(error.message) ? error.message : 'failed';
+
 if (config.alerts && (!only || only.includes('alerts'))) {
+  const saved = store.readAlerts();
+  let alerts = saved?.alerts;
+  let updatedAt = saved?.updatedAt;
+  let changed = false;
   try {
-    const alerts = await fetchAlerts(config.alerts.historyUrl, {
-      timeoutMs,
-      maxPages: config.alerts.maxPages,
-    });
-    store.writeAlerts({ updatedAt: new Date().toISOString(), alerts });
-    console.log(`${'alerts'.padEnd(22)} ${alerts.length} saved`);
+    const read = await fetchAlerts(config.alerts.historyUrl, { timeoutMs, maxPages: config.alerts.maxPages });
+    alerts = mergeAlerts(saved?.alerts ?? [], read);
+    updatedAt = new Date().toISOString();
+    changed = true;
+    console.log(`${'alerts'.padEnd(22)} ${read.length} read, ${alerts.length} in the archive`);
   } catch (error) {
-    const status = error instanceof Error && /^HTTP \d{3}$/.test(error.message) ? error.message : 'failed';
-    console.log(`${'alerts'.padEnd(22)} not updated: ${status}`);
+    console.log(`${'alerts'.padEnd(22)} not updated: ${failure(error)}`);
   }
+  if (changed && alerts && updatedAt) store.writeAlerts({ updatedAt, alerts });
 }

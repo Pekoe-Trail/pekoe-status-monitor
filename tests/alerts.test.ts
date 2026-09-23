@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAlerts, openAlerts, parsePage, type Alert } from '../scripts/lib/alerts.ts';
+import { fetchAlerts, mergeAlerts, openAlerts, parsePage, type Alert } from '../scripts/lib/alerts.ts';
 
 /**
  * Builds a PSA as the API returns it, with some fields the page doesn't use.
@@ -121,5 +121,32 @@ describe('openAlerts', () => {
       ]),
     );
     expect(openAlerts(alerts as Alert[]).map((a) => a.id)).toEqual(['closure', 'new-advisory', 'old-advisory']);
+  });
+});
+
+describe('mergeAlerts', () => {
+  const saved = (id: string, publishedAt: string, status = 'OPEN') =>
+    ({ ...psa({ id, publishedAt, status }), severity: { value: 'ADVISORY', label: 'Advisory' } }) as unknown as Alert;
+
+  it('keeps alerts the read no longer reaches', () => {
+    const old = saved('old', '2025-01-01T00:00:00.000Z');
+    const recent = saved('recent', '2026-09-01T00:00:00.000Z');
+    expect(mergeAlerts([old], [recent]).map((a) => a.id)).toEqual(['recent', 'old']);
+  });
+
+  it('replaces an alert with the copy just read', () => {
+    const before = saved('a1', '2026-09-01T00:00:00.000Z');
+    const after = saved('a1', '2026-09-01T00:00:00.000Z', 'CLOSED');
+    const merged = mergeAlerts([before], [after]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe('CLOSED');
+  });
+
+  it('orders every alert newest first', () => {
+    const ids = mergeAlerts(
+      [saved('b', '2026-05-01T00:00:00.000Z')],
+      [saved('c', '2026-09-01T00:00:00.000Z'), saved('a', '2026-01-01T00:00:00.000Z')],
+    ).map((a) => a.id);
+    expect(ids).toEqual(['c', 'b', 'a']);
   });
 });

@@ -23,12 +23,12 @@ settings:
   # Detailed checks kept; older days survive only as daily totals.
   keepCheckDays: 7
 
-# Trail alerts (PSAs) published in the admin panel, shown on the Trail alerts page.
+# Trail alerts (PSAs) published in the admin panel, shown on the Trail page.
 # Read every run from the API's public history; the last good copy is kept if it fails.
 #   historyUrl  public history of every PSA (global and stage) with each update's
 #               channels, paged 50 at a time, newest first
 #   maxPages    pages to read, so at most maxPages × 50 alerts are shown
-#   stages      number of trail stages, for the stage strip on the home page
+#   stages      number of trail stages, for the stage strip on the Trail page
 alerts:
   historyUrl: https://api.pekoetrailapp.com/v1/alerts/public/history
   maxPages: 4

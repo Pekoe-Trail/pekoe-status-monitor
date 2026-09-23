@@ -51,7 +51,7 @@ const alert = z.object({
 
 export type Alert = z.infer<typeof alert>;
 
-/** `data/alerts.json` */
+/** The saved trail alerts: `data/alerts/` */
 export interface AlertsFile {
   /** When the history was last read from the API */
   updatedAt: string;
@@ -121,6 +121,21 @@ export async function fetchAlerts(
     pageNumber = next;
   }
   return alerts;
+}
+
+/**
+ * Merges a read of the alert history into the archive. The archive only ever grows: an alert
+ * the API no longer returns, because the read is capped at `maxPages` or it was removed from
+ * the register, is kept as it was last seen.
+ *
+ * @param archive The alerts saved so far.
+ * @param fetched The alerts just read, which replace the saved copy of the same alert.
+ * @returns Every alert, newest first by the time it was published.
+ */
+export function mergeAlerts(archive: Alert[], fetched: Alert[]): Alert[] {
+  const byId = new Map(archive.map((alert) => [alert.id, alert]));
+  for (const alert of fetched) byId.set(alert.id, alert);
+  return [...byId.values()].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
 /**

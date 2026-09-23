@@ -88,7 +88,7 @@ jobs:
           rm -rf checks daily
           cp -R "$RESULTS/checks" "$RESULTS/daily" .
           cp "$RESULTS/current.json" .
-          if [ -f "$RESULTS/alerts.json" ]; then cp "$RESULTS/alerts.json" .; fi
+          if [ -d "$RESULTS/alerts" ]; then rm -rf alerts alerts.json; cp -R "$RESULTS/alerts" .; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A

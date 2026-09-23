@@ -1,11 +1,28 @@
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import type { AlertsFile } from './alerts.ts';
+import type { Alert, AlertsFile } from './alerts.ts';
+import { localDay } from './time.ts';
 import type { CheckResult, CurrentFile, DailyFile } from './types.ts';
 
+/** `data/alerts/meta.json`: everything about the alerts except the alerts themselves */
+interface AlertsMeta {
+  updatedAt: string;
+}
+
+/** Where the alerts of one year are kept */
+const yearFile = (year: string) => join('alerts', `${year}.json`);
+
 /**
- * Reads and writes the status data files: `current.json`, `alerts.json`, the detailed
- * checks under `checks/` and the daily totals under `daily/`.
+ * Gives the year an alert belongs to.
+ *
+ * @param alert The alert.
+ * @returns The Sri Lanka calendar year it was published in, such as `2026`.
+ */
+const alertYear = (alert: Alert) => localDay(new Date(alert.publishedAt)).slice(0, 4);
+
+/**
+ * Reads and writes the status data files: `current.json`, the trail alerts under `alerts/`,
+ * the detailed checks under `checks/` and the daily totals under `daily/`.
  */
 export class Store {
   /**
@@ -34,21 +51,51 @@ export class Store {
   }
 
   /**
-   * Reads the saved trail alerts.
+   * Reads the saved trail alerts, from every year kept under `alerts/`. Falls back to the
+   * single `alerts.json` of the first version of this folder.
    *
-   * @returns The last saved alerts, or undefined when none were ever saved.
+   * @returns The alerts, newest first, with when they were last read; undefined when none
+   *   were ever saved.
    */
   readAlerts(): AlertsFile | undefined {
-    return this.readJson<AlertsFile>('alerts.json');
+    const meta = this.readJson<AlertsMeta>(join('alerts', 'meta.json'));
+    if (!meta) return this.readJson<AlertsFile>('alerts.json');
+    const alerts = this.alertYears().flatMap((year) => this.readJson<Alert[]>(yearFile(year)) ?? []);
+    return { ...meta, alerts };
   }
 
   /**
-   * Saves the trail alerts, replacing the previous copy.
+   * Saves the trail alerts, one file per year so no file grows without end. A year's file is
+   * rewritten only when that year's alerts changed, which keeps the daily commits small.
    *
-   * @param alerts The alerts to write to `alerts.json`.
+   * @param file The alerts to save, with when they were read.
    */
-  writeAlerts(alerts: AlertsFile): void {
-    this.writeJson('alerts.json', alerts);
+  writeAlerts(file: AlertsFile): void {
+    const years = new Map<string, Alert[]>();
+    for (const alert of file.alerts) {
+      const year = alertYear(alert);
+      years.set(year, [...(years.get(year) ?? []), alert]);
+    }
+    for (const [year, alerts] of years) {
+      const saved = this.readJson<Alert[]>(yearFile(year));
+      if (JSON.stringify(saved) !== JSON.stringify(alerts)) this.writeJson(yearFile(year), alerts);
+    }
+    const { alerts, ...meta } = file;
+    this.writeJson(join('alerts', 'meta.json'), meta);
+  }
+
+  /**
+   * Lists the years that have an alerts file.
+   *
+   * @returns The years, newest first, as `YYYY`.
+   */
+  private alertYears(): string[] {
+    const full = join(this.root, 'alerts');
+    if (!existsSync(full)) return [];
+    return readdirSync(full)
+      .filter((name) => /^\d{4}\.json$/.test(name))
+      .map((name) => name.slice(0, 4))
+      .sort((a, b) => b.localeCompare(a));
   }
 
   /**
