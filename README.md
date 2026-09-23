@@ -48,7 +48,6 @@ page: `/` redirects to `/system`.
 | `/system` | Every system's state, with its last 24 hours of checks |
 | `/systems/<id>` | One system: uptime, 24 hours of checks, 30 days of checks, 90 days of uptime, response times, incidents |
 | `/incidents`, `/incidents/<id>` | Incident and maintenance notes |
-| `/status.json`, `/incidents/rss.xml` | The current state as JSON, and incidents as a feed |
 
 Addresses carry no trailing slash: `/trail`, not `/trail/`. Anything else lands on the
 site's own 404 page.
@@ -192,10 +191,10 @@ nobody can start a run from the internet.
 
 ### 4. Check it
 
-A run tagged `workflow_dispatch` should appear in Actions within ten minutes, and
-`updatedAt` in [`status.json`](https://status.thepekoetrail.org/status.json) should move.
-The Worker's **Logs** tab shows each invocation; a failure throws with the status GitHub
-returned, so it shows up as an error rather than passing quietly.
+A run tagged `workflow_dispatch` should appear in Actions within ten minutes, and the
+"Last checked" time in the footer of [the status page](https://status.thepekoetrail.org)
+should move. The Worker's **Logs** tab shows each invocation; a failure throws with the
+status GitHub returned, so it shows up as an error rather than passing quietly.
 
 | Status | Cause |
 |---|---|
