@@ -3,7 +3,17 @@ import { z } from 'zod';
 export const SEVERITIES = ['OK', 'ADVISORY', 'PRECAUTION', 'CLOSED'] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
+/** The channels a PSA update can go out on, in the SOP's order. */
+export const CHANNELS = ['WEBSITE', 'APP', 'PUSH', 'EMAIL'] as const;
+export type Channel = (typeof CHANNELS)[number];
+
 const severity = z.object({ value: z.enum(SEVERITIES), label: z.string() });
+
+/** The channels of an update; one this page doesn't know is dropped, not a reason to skip the PSA. */
+const channels = z
+  .array(z.string())
+  .default([])
+  .transform((list) => CHANNELS.filter((channel) => list.includes(channel)));
 
 const date = z.iso.datetime({ offset: true });
 
@@ -33,6 +43,7 @@ const alert = z.object({
         createdAt: date,
         title: z.string().nullish(),
         message: z.string().nullish(),
+        channels,
       }),
     )
     .default([]),

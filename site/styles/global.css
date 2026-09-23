@@ -655,12 +655,61 @@ a.incident:hover .incident-title {
   font-size: 0.7rem;
 }
 
-.sev.sev-ok, .swatch.sev-ok, .stage.sev-ok { background: #A3A437; }
-.sev.sev-advisory, .swatch.sev-advisory, .stage.sev-advisory { background: #FBC02D; }
-.sev.sev-precaution, .swatch.sev-precaution, .stage.sev-precaution { background: #FB862B; }
-.sev.sev-closed, .swatch.sev-closed, .stage.sev-closed { background: #FF5A5A; }
+.sev.sev-ok, .swatch.sev-ok, .stage.sev-ok, .stage-all.sev-ok { background: #A3A437; }
+.sev.sev-advisory, .swatch.sev-advisory, .stage.sev-advisory, .stage-all.sev-advisory { background: #FBC02D; }
+.sev.sev-precaution, .swatch.sev-precaution, .stage.sev-precaution, .stage-all.sev-precaution { background: #FB862B; }
+.sev.sev-closed, .swatch.sev-closed, .stage.sev-closed, .stage-all.sev-closed { background: #FF5A5A; }
 
-/* Stage strip: one block per stage, coloured by its worst open alert */
+/* Channels an alert update went out on: website, app, push, email */
+
+.channels {
+  margin-top: 2px;
+}
+
+.channels ul {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.channels-title {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.alert-facts .channels {
+  margin-top: 0;
+}
+
+.channel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* A dot in the channel's own colour, so the four read as one set. */
+.channel::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+/* Stage strip: one block per stage, coloured by its worst open alert, 11 to a row */
 
 .stages {
   padding: 14px 16px 16px;

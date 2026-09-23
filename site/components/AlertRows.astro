@@ -1,5 +1,6 @@
 ---
-import { alertHref, severityClass, where, type Alert } from '../lib/alerts.ts';
+import ChannelPills from './ChannelPills.astro';
+import { alertChannels, alertHref, severityClass, where, type Alert } from '../lib/alerts.ts';
 import { formatDateTime } from '../lib/status.ts';
 
 interface Props {
@@ -23,6 +24,7 @@ const { items, empty = 'No trail alerts.' } = Astro.props;
           {alert.number} · {where(alert)} · {formatDateTime(new Date(alert.publishedAt))}
           {alert.closedAt && <> · resolved {formatDateTime(new Date(alert.closedAt))}</>}
         </div>
+        <ChannelPills channels={alertChannels(alert)} />
       </a>
     ))
   }

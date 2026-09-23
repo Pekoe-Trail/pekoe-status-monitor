@@ -1,8 +1,16 @@
 import { loadConfig } from '../../scripts/lib/config.ts';
-import { SEVERITIES, openAlerts, type Alert, type Severity } from '../../scripts/lib/alerts.ts';
+import {
+  CHANNELS,
+  SEVERITIES,
+  openAlerts,
+  type Alert,
+  type Channel,
+  type Severity,
+} from '../../scripts/lib/alerts.ts';
 import { Store } from '../../scripts/lib/store.ts';
+import { localDay } from '../../scripts/lib/time.ts';
 
-export type { Alert, Severity };
+export type { Alert, Channel, Severity };
 
 const file = new Store(process.env.STATUS_DATA_DIR ?? 'data').readAlerts();
 const stageCount = loadConfig().alerts?.stages ?? 0;
@@ -35,6 +43,22 @@ export const KIND_LABEL: Record<Alert['history'][number]['kind'], string> = {
   UPDATED: 'Updated',
   CLOSED: 'Resolved',
 };
+
+export const CHANNEL_LABEL: Record<Channel, string> = {
+  WEBSITE: 'Posted on the website',
+  APP: 'Shown in the app',
+  PUSH: 'Phone notification',
+  EMAIL: 'Sent by email',
+};
+
+/**
+ * Lists every channel an alert's updates went out on.
+ *
+ * @param alert The alert.
+ * @returns The channels, in the order website, app, push, email.
+ */
+export const alertChannels = (alert: Alert): Channel[] =>
+  CHANNELS.filter((channel) => alert.history.some((step) => step.channels.includes(channel)));
 
 /**
  * Describes which stages an alert covers.

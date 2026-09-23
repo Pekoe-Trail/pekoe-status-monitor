@@ -1,0 +1,24 @@
+---
+import { CHANNEL_LABEL, type Channel } from '../lib/alerts.ts';
+
+interface Props {
+  channels: Channel[];
+  /** Whether to write "Alert sent via" above the list; off where a heading already says it. */
+  heading?: boolean;
+}
+
+const { channels, heading = true } = Astro.props;
+---
+
+{
+  channels.length > 0 && (
+    <div class="channels">
+      {heading && <span class="channels-title">Alert sent via</span>}
+      <ul>
+        {channels.map((channel) => (
+          <li class:list={['channel', `channel-${channel.toLowerCase()}`]}>{CHANNEL_LABEL[channel]}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}

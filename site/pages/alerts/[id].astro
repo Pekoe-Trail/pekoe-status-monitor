@@ -1,6 +1,15 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { KIND_LABEL, alerts, severityClass, timeline, where, type Alert } from '../../lib/alerts.ts';
+import ChannelPills from '../../components/ChannelPills.astro';
+import {
+  KIND_LABEL,
+  alertChannels,
+  alerts,
+  severityClass,
+  timeline,
+  where,
+  type Alert,
+} from '../../lib/alerts.ts';
 import { formatDateTime } from '../../lib/status.ts';
 
 /**
@@ -35,6 +44,14 @@ const sev = severityClass(alert.severity.value);
     <dl class="alert-facts">
       <div><dt>Where</dt><dd>{where(alert)}</dd></div>
       <div><dt>Category</dt><dd>{alert.category.label}</dd></div>
+      {
+        alertChannels(alert).length > 0 && (
+          <div>
+            <dt>Alert sent via</dt>
+            <dd><ChannelPills channels={alertChannels(alert)} heading={false} /></dd>
+          </div>
+        )
+      }
       <div><dt>Published</dt><dd>{formatDateTime(new Date(alert.publishedAt))}</dd></div>
       {
         alert.closedAt ? (
@@ -73,6 +90,7 @@ const sev = severityClass(alert.severity.value);
                 <span class="small muted">{formatDateTime(new Date(step.createdAt))}</span>
               </div>
               {(step.message ?? step.title) && <p>{step.message ?? step.title}</p>}
+              <ChannelPills channels={step.channels} />
             </li>
           ))}
         </ol>

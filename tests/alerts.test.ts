@@ -36,6 +36,7 @@ function psa(overrides: Record<string, unknown> = {}) {
         createdAt: '2026-09-20T03:30:00.000Z',
         title: 'Heavy rain across the trail',
         message: null,
+        channels: ['WEBSITE', 'APP', 'PUSH'],
       },
     ],
     ...overrides,
@@ -62,6 +63,12 @@ describe('parsePage', () => {
     expect(alerts[0]).not.toHaveProperty('translations');
     expect(alerts[0]).not.toHaveProperty('reviewAt');
     expect(alerts[0].severity).toEqual({ value: 'ADVISORY', label: 'Advisory' });
+  });
+
+  it('keeps each update\'s channels in order, dropping ones it does not know', () => {
+    const step = { ...psa().history[0], channels: ['EMAIL', 'SMS', 'WEBSITE'] };
+    const { alerts } = parsePage(body([psa({ history: [step] }), psa({ id: 'a2', history: [{ ...step, channels: undefined }] })]));
+    expect(alerts.map((a) => a.history[0].channels)).toEqual([['WEBSITE', 'EMAIL'], []]);
   });
 
   it('skips an alert with an unexpected shape', () => {
