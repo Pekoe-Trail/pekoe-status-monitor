@@ -34,7 +34,15 @@ export const severityClass = (severity: Severity) => `sev-${severity.toLowerCase
  * Builds the link to an alert's page.
  *
  * @param alert The alert.
- * @returns Its path, such as `/alerts/psa-0042/`.
+ * @returns Its path, such as `/alerts/psa-0042`.
+ */
+export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()}`;
+
+/**
+ * Builds the link to a stage's page.
+ *
+ * @param stage The stage number.
+ * @returns Its path, such as `/stages/4`.
  */
 export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()}/`;
 

@@ -12,7 +12,7 @@ const bars = system.bars.slice(-DAYS);
 const LEVEL_TEXT = { none: 'No data', up: 'No downtime', minor: 'Some downtime', major: 'Major downtime' };
 ---
 
-<a class="system-card" href={`/systems/${system.config.id}/`}>
+<a class="system-card" href={`/systems/${system.config.id}`}>
   <span class="system-head">
     <span class="system-name">{system.config.name}</span>
     <StatusLabel status={system.status} />

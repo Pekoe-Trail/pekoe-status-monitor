@@ -15,7 +15,7 @@ export function GET(context: APIContext) {
     site: context.site!,
     items: incidents.map((incident) => ({
       title: `[${STATUS_LABEL[incident.data.status]}] ${incident.data.title}`,
-      link: `/incidents/${incident.id}/`,
+      link: `/incidents/${incident.id}`,
       pubDate: incident.data.started,
       description: incident.body?.split(/\n\s*\n/).find((p) => p.trim()) ?? '',
     })),

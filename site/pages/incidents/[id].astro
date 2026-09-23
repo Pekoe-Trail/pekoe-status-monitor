@@ -26,8 +26,8 @@ const names = data.systems.map((id) => systemById(id)?.config.name ?? id).join('
 const tone = finished ? 'done' : data.type === 'maintenance' ? 'maintenance' : data.severity;
 ---
 
-<Base title={data.title} description={`${STATUS_LABEL[data.status]}: ${data.title}. Affects ${names}.`}>
-  <a class="back" href="/incidents/">← All incidents</a>
+<Base section="system" title={data.title} description={`${STATUS_LABEL[data.status]}: ${data.title}. Affects ${names}.`}>
+  <a class="back" href="/incidents">← All incidents</a>
   <h1>{data.title}</h1>
   <p class="muted">
     <span class="tag">{STATUS_LABEL[data.status]}</span>{' '}

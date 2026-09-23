@@ -1,0 +1,65 @@
+---
+import Base from '../../layouts/Base.astro';
+import IncidentList from '../../components/IncidentList.astro';
+import StatusBoard from '../../components/StatusBoard.astro';
+import SystemCard from '../../components/SystemCard.astro';
+import { active, recentPast, upcoming } from '../../lib/incidents.ts';
+import { groups, isStale, updatedAt, formatDateTime } from '../../lib/status.ts';
+
+const past = recentPast(14);
+---
+
+<Base section="system" title="Systems">
+  <h1 class="visually-hidden">Pekoe Trail website, app and services</h1>
+  <StatusBoard show="digital" />
+  {
+    isStale && updatedAt && (
+      <p class="notice">
+        Checks are running late. The last check was at {formatDateTime(updatedAt)}, Sri Lanka time, so
+        this page may be out of date.
+      </p>
+    )
+  }
+
+  <section class="zone">
+    <div class="zone-head">
+      <div>
+        <p class="eyebrow">Digital</p>
+        <h2>Website, app and services</h2>
+      </div>
+      <a class="zone-link" href="/incidents">All incidents →</a>
+    </div>
+
+    {
+      active.length > 0 && (
+        <>
+          <h3 class="zone-sub">Happening now</h3>
+          <IncidentList items={active} />
+        </>
+      )
+    }
+
+    {
+      upcoming.length > 0 && (
+        <>
+          <h3 class="zone-sub">Planned maintenance</h3>
+          <IncidentList items={upcoming} />
+        </>
+      )
+    }
+
+    {
+      groups.map(([group, members]) => (
+        <>
+          <h3 class="zone-sub">{group}</h3>
+          <div class="system-grid">
+            {members.map((system) => <SystemCard system={system} />)}
+          </div>
+        </>
+      ))
+    }
+
+    <h3 class="zone-sub">Past 14 days</h3>
+    <IncidentList items={past} empty="No incidents in the past 14 days." />
+  </section>
+</Base>

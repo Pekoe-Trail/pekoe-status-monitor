@@ -31,8 +31,8 @@ const open = alert.status === 'OPEN';
 const sev = severityClass(alert.severity.value);
 ---
 
-<Base title={title} description={`${alert.severity.label}, ${where(alert)}: ${title}`}>
-  <a class="back" href="/alerts/">← All trail alerts</a>
+<Base section="trail" title={title} description={`${alert.severity.label}, ${where(alert)}: ${title}`}>
+  <a class="back" href="/trail">← Trail</a>
 
   <div class:list={['alert-hero', sev, { done: !open }]}>
     <div class="alert-card-top">

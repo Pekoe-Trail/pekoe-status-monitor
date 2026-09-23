@@ -30,16 +30,17 @@ const stats = [
 ] as const;
 ---
 
-<Base title={config.name} description={`Uptime and incident history for ${config.name}.`}>
-  <a class="back" href="/">← All systems</a>
-  <div class="system-head">
-    <h1>{config.name}</h1>
-    <StatusLabel status={system.status} />
-  </div>
-  <p class="muted">
-    {config.description}
-    {config.url && <> · <a href={config.url}>{new URL(config.url).host}</a></>}
-  </p>
+<Base section="system" title={config.name} description={`Uptime and incident history for ${config.name}.`}>
+  <div class="system-page">
+    <a class="back" href="/system">← All systems</a>
+    <div class="system-title">
+      <h1>{config.name}</h1>
+      <StatusLabel status={system.status} />
+    </div>
+    <p class="system-where">
+      {config.description}
+      {config.url && <> · <a href={config.url}>{new URL(config.url).host}</a></>}
+    </p>
 
   <h2>Uptime</h2>
   <dl class="stats">

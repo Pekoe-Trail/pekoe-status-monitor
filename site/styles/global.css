@@ -97,8 +97,6 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: var(--text);
-  text-decoration: none;
 }
 
 .brand img {
@@ -107,43 +105,9 @@ a:hover {
   height: 48px;
 }
 
-.brand-label {
-  padding-left: 14px;
-  border-left: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.site-nav {
-  display: flex;
-  gap: 16px;
-  font-size: 0.95rem;
-}
-
-.site-nav a {
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.site-nav a:hover,
-.site-nav a[aria-current='page'] {
-  color: var(--text);
-}
-
-.header-end {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-/* Three links, the logo and the toggle don't fit a phone with the "Status" label too. */
+/* The logo and the toggle on a phone. */
 @media (max-width: 560px) {
-  .brand-label { display: none; }
   .brand img { width: 60px; height: 40px; }
-  .header-end { gap: 10px; }
-  .site-nav { gap: 12px; font-size: 0.85rem; white-space: nowrap; }
 }
 
 .theme-toggle {
@@ -227,16 +191,11 @@ h2 {
   border-radius: var(--radius);
 }
 
-/* Status board: the trail and digital state side by side, trail first */
+/* Status board: the trail or digital state at the top of its page */
 
 .board {
   display: grid;
-  grid-template-columns: 3fr 2fr;
   gap: 12px;
-}
-
-@media (max-width: 640px) {
-  .board { grid-template-columns: 1fr; }
 }
 
 .board-card {
@@ -247,13 +206,6 @@ h2 {
   padding: 18px 20px;
   border-radius: var(--radius);
   color: var(--banner-text);
-  text-decoration: none;
-  transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.board-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(8, 12, 6, 0.06), 0 10px 26px rgba(8, 12, 6, 0.12);
 }
 
 .board-label {
@@ -281,14 +233,6 @@ h2 {
 .board-detail {
   font-size: 0.95rem;
   font-weight: 500;
-}
-
-.board-more {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* Trail card: SOP severity colours, with ink text on all of them. */
@@ -331,8 +275,6 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .ping::after { animation: none; }
-  .board-card { transition: none; }
-  .board-card:hover { transform: none; }
 }
 
 /* Zones: the Trail and Digital sections of the home page */
@@ -1012,3 +954,85 @@ a.stage:hover {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* Hover tooltip for the maps, grids and bars, placed by public/tooltip.js */
+
+.tip {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  max-width: min(240px, calc(100vw - 16px));
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-wrap: balance;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 6px 20px rgba(8, 12, 6, 0.18);
+  transition: opacity 0.12s ease;
+}
+
+.tip.on {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip { transition: none; }
+}
+
+/* 404 page */
+
+.lost {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  max-width: 520px;
+  margin: 8vh auto 10vh;
+  text-align: center;
+}
+
+.lost img {
+  width: 180px;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.lost-code {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.lost h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.lost p.muted {
+  margin: 0;
+}
+
+.lost-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.button-quiet {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.button-quiet:hover {
+  background: var(--surface);
+}
+

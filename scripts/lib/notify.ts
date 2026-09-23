@@ -49,7 +49,7 @@ export function formatMessage(
   transition: NonNullable<Transition>,
   { icons = true }: { icons?: boolean } = {},
 ): string {
-  const link = `${SITE_URL}/systems/${system.id}/`;
+  const link = `${SITE_URL}/systems/${system.id}`;
   if (transition.kind === 'down') {
     const since = timeFormat.format(new Date(state.downSince ?? state.checkedAt));
     return [

@@ -27,7 +27,7 @@ export function GET() {
       status: data.status,
       systems: data.systems,
       started: data.started.toISOString(),
-      url: `https://status.thepekoetrail.org/incidents/${id}/`,
+      url: `https://status.thepekoetrail.org/incidents/${id}`,
     })),
   };
   return new Response(JSON.stringify(body, null, 2), {

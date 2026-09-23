@@ -1,0 +1,56 @@
+---
+import Base from '../../layouts/Base.astro';
+import AlertCard from '../../components/AlertCard.astro';
+import StageStrip from '../../components/StageStrip.astro';
+import StatusBoard from '../../components/StatusBoard.astro';
+import { alertsUpdatedAt, current, hasAlerts } from '../../lib/alerts.ts';
+import { formatDateTime } from '../../lib/status.ts';
+---
+
+<Base
+  section="trail"
+  title="Trail"
+  description="Live conditions on the Pekoe Trail: which stages are open, and the alerts in force now."
+>
+  <h1 class="visually-hidden">Pekoe Trail conditions</h1>
+  <StatusBoard show="trail" />
+
+  <section class="zone">
+    <div class="zone-head">
+      <div>
+        <p class="eyebrow">Trail</p>
+        <h2>Conditions on the trail</h2>
+      </div>
+    </div>
+    <p class="muted">
+      Closures, precautions and advisories for walkers on the trail. Pick a stage for its
+      alerts and its year. For stage details, see{' '}
+      <a href="https://thepekoetrail.org">thepekoetrail.org</a>.
+    </p>
+
+    {
+      !hasAlerts ? (
+        <div class="card">
+          <p class="empty">Trail alerts aren't available yet.</p>
+        </div>
+      ) : (
+        <>
+          <StageStrip />
+          <h3 class="zone-sub">Active now</h3>
+          {current.length > 0 ? (
+            <div class="alert-grid">
+              {current.map((alert) => <AlertCard alert={alert} />)}
+            </div>
+          ) : (
+            <div class="card">
+              <p class="empty">No active trail alerts. All stages are open.</p>
+            </div>
+          )}
+          {alertsUpdatedAt && (
+            <p class="small muted">Last updated {formatDateTime(alertsUpdatedAt)}, Sri Lanka time.</p>
+          )}
+        </>
+      )
+    }
+  </section>
+</Base>

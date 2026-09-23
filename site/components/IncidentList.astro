@@ -43,7 +43,7 @@ function meta({ data }: Incident) {
   {items.length === 0 && <p class="empty">{empty}</p>}
   {
     items.map((incident) => (
-      <a class:list={['incident', tone(incident)]} href={`/incidents/${incident.id}/`}>
+      <a class:list={['incident', tone(incident)]} href={`/incidents/${incident.id}`}>
         <div class="incident-title">
           {incident.data.title} <span class="tag">{STATUS_LABEL[incident.data.status]}</span>{' '}
           {incident.data.type === 'maintenance' && <span class="tag">Maintenance</span>}

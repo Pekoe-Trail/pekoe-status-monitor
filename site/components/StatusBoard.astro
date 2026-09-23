@@ -1,28 +1,41 @@
 ---
-import { current, severityClass, trail } from '../lib/alerts.ts';
+import { severityClass, trail } from '../lib/alerts.ts';
 import { OVERALL_TEXT, overall, systems } from '../lib/status.ts';
 
+interface Props {
+  /** Which state to show: the trail's, or the website, app and services'. */
+  show: 'trail' | 'digital';
+}
+
+const { show } = Astro.props;
 const up = systems.filter((s) => s.status === 'up').length;
-const checked = systems.filter((s) => s.status !== 'unknown').length;
-const digitalDetail = checked === 0 ? 'Checks will show here' : `${up} of ${checked} services running normally`;
+const waiting = systems.filter((s) => s.status === 'unknown').length;
+const digitalDetail =
+  waiting === systems.length
+    ? 'Checks will show here'
+    : `${up} of ${systems.length} services running normally` +
+      (waiting > 0 ? ` · ${waiting} not checked yet` : '');
 const trailClass = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
 const urgent = trail.severity === 'CLOSED' || trail.severity === 'PRECAUTION';
 ---
 
 <div class="board" role="status">
-  <a class:list={['board-card', 'board-trail', trailClass]} href="#trail">
-    <span class="board-label">
-      {urgent && <span class="ping" aria-hidden="true"></span>}
-      Trail
-    </span>
-    <span class="board-headline">{trail.headline}</span>
-    <span class="board-detail">{trail.detail}</span>
-    <span class="board-more">{current.length > 0 ? 'See trail alerts' : 'See the trail'} ↓</span>
-  </a>
-  <a class:list={['board-card', 'board-digital', overall]} href="#digital">
-    <span class="board-label">Digital</span>
-    <span class="board-headline">{OVERALL_TEXT[overall]}</span>
-    <span class="board-detail">{digitalDetail}</span>
-    <span class="board-more">See website, app and services ↓</span>
-  </a>
+  {
+    show === 'trail' ? (
+      <div class:list={['board-card', 'board-trail', trailClass]}>
+        <span class="board-label">
+          {urgent && <span class="ping" aria-hidden="true" />}
+          Trail
+        </span>
+        <span class="board-headline">{trail.headline}</span>
+        <span class="board-detail">{trail.detail}</span>
+      </div>
+    ) : (
+      <div class:list={['board-card', 'board-digital', overall]}>
+        <span class="board-label">Digital</span>
+        <span class="board-headline">{OVERALL_TEXT[overall]}</span>
+        <span class="board-detail">{digitalDetail}</span>
+      </div>
+    )
+  }
 </div>
