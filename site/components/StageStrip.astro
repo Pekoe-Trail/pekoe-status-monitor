@@ -1,7 +1,8 @@
 ---
-import { alertHref, severityClass, stages } from '../lib/alerts.ts';
+import { severityClass, stages, trail } from '../lib/alerts.ts';
 
 const LABEL = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
+const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
 ---
 
 {
@@ -15,20 +16,18 @@ const LABEL = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOS
           ))}
         </ul>
       </div>
+      <a class:list={['stage-all', overall]} href="/stages/overall">
+        <span class="stage-all-name">All stages</span>
+        <span class="stage-all-note">Every alert on the trail</span>
+      </a>
       <ol class="stage-strip">
         {stages.map((stage) => {
           const label = `Stage ${stage.number}: ${LABEL[stage.severity]}${stage.alert ? `, ${stage.alert.title ?? stage.alert.category.label}` : ''}`;
           return (
             <li>
-              {stage.alert ? (
-                <a class:list={['stage', severityClass(stage.severity)]} href={alertHref(stage.alert)} title={label} aria-label={label}>
-                  {stage.number}
-                </a>
-              ) : (
-                <span class:list={['stage', severityClass(stage.severity)]} title={label} aria-label={label}>
-                  {stage.number}
-                </span>
-              )}
+              <a class:list={['stage', severityClass(stage.severity)]} href={`/stages/${stage.number}`} data-tip={label} aria-label={label}>
+                {stage.number}
+              </a>
             </li>
           );
         })}

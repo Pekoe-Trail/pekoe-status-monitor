@@ -1,0 +1,73 @@
+---
+import ChannelPills from './ChannelPills.astro';
+import YearLinks from './YearLinks.astro';
+import YearMap from './YearMap.astro';
+import {
+  KIND_LABEL,
+  alertHref,
+  severityClass,
+  stageAlerts,
+  stageTimeline,
+  stepAnchor,
+  where,
+} from '../lib/alerts.ts';
+import { days, stageDays } from '../lib/calendar.ts';
+import { formatDateTime } from '../lib/status.ts';
+
+interface Props {
+  /** The stage number, or null for the whole trail. */
+  stage: number | null;
+  /** The page the year links belong to, such as `/stages/4` or `/stages/overall`. */
+  base: string;
+  /** The first day shown, as `YYYY-MM-DD`. */
+  from: string;
+  /** The last day shown, as `YYYY-MM-DD`. */
+  to: string;
+  /** What the map covers, such as "Stage 4 in 2025". */
+  label: string;
+  /** The year being shown, or 'recent' for the rolling window, for the year links. */
+  current: string;
+}
+
+const { stage, base, from, to, label, current } = Astro.props;
+const colours = stageDays(stageAlerts(stage), days(from, to));
+const steps = stageTimeline(stage, from, to);
+const marks = steps.map((entry) => ({ at: Date.parse(entry.step.createdAt), anchor: stepAnchor(entry) }));
+---
+
+<YearLinks base={base} current={current} />
+<YearMap colours={colours} from={from} to={to} label={label} marks={marks} />
+
+<h3 class="zone-sub">Timeline</h3>
+{
+  steps.length === 0 ? (
+    <div class="card">
+      <p class="empty">
+        No alerts {stage === null ? 'on the trail' : 'on this stage'}{' '}
+        {current === 'recent' ? 'in the past year' : `in ${current}`}.
+      </p>
+    </div>
+  ) : (
+    <ol class="timeline card">
+      {steps.map(({ alert, step }) => (
+        <li
+          id={stepAnchor({ alert, step })}
+          class:list={[severityClass(step.severity.value), { done: step.kind === 'CLOSED' }]}
+        >
+          <div class="timeline-head">
+            <span class="timeline-kind">{KIND_LABEL[step.kind]}</span>
+            <span class:list={['sev', 'sev-small', severityClass(step.severity.value)]}>{step.severity.label}</span>
+            <time class="timeline-when" datetime={step.createdAt}>{formatDateTime(new Date(step.createdAt))}</time>
+          </div>
+          <div class="timeline-alert">
+            <a href={alertHref(alert)}>{alert.number}: {alert.title ?? alert.reason ?? alert.category.label}</a>
+            <span class="muted"> · {where(alert)}</span>
+          </div>
+          {step.message && <p>{step.message}</p>}
+          <ChannelPills channels={step.channels} />
+        </li>
+      ))}
+    </ol>
+  )
+}
+<p class="small muted">Times are Sri Lanka time.</p>

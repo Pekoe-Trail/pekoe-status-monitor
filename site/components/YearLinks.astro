@@ -1,0 +1,24 @@
+---
+import { alertYears } from '../lib/alerts.ts';
+
+interface Props {
+  /** The page the links belong to, such as `/stages/4` or `/stages/overall`. */
+  base: string;
+  /** The year being shown, or 'recent' for the rolling window. */
+  current: string;
+}
+
+const { base, current } = Astro.props;
+---
+
+{
+  alertYears.length > 0 && (
+    <nav class="year-links" aria-label="Year">
+      {alertYears.map((year) => (
+        <a href={`${base}/${year}`} aria-current={current === year ? 'page' : undefined}>
+          {year}
+        </a>
+      ))}
+    </nav>
+  )
+}

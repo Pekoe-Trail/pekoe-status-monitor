@@ -696,8 +696,8 @@ a.incident:hover .incident-title {
 
 .stage-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -706,7 +706,7 @@ a.incident:hover .incident-title {
 .stage {
   display: grid;
   place-items: center;
-  height: 34px;
+  height: 36px;
   border-radius: 6px;
   color: #080C06;
   font-size: 0.8rem;
@@ -720,16 +720,126 @@ a.incident:hover .incident-title {
   opacity: 0.45;
 }
 
-a.stage:hover {
+a.stage.sev-ok:hover {
+  opacity: 0.8;
+}
+
+/* Year map: one square per day in the stage's colour at the end of that day, like a
+   contribution graph. It scrolls sideways on a phone, starting at today. */
+
+.year {
+  padding: 14px 16px 12px;
+  margin-bottom: 12px;
+}
+
+.year-scroll {
+  overflow-x: auto;
+  direction: rtl;
+}
+
+.year-map {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  grid-template-areas: '. months' 'days grid';
+  gap: 4px 6px;
+  direction: ltr;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.year-months,
+.year-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 10px;
+  column-gap: 2px;
+}
+
+.year-months {
+  grid-area: months;
+}
+
+.year-months span {
+  white-space: nowrap;
+}
+
+.year-days {
+  grid-area: days;
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  row-gap: 2px;
+  line-height: 10px;
+}
+
+.year-grid {
+  grid-area: grid;
+  grid-template-rows: repeat(7, 10px);
+  row-gap: 2px;
+}
+
+.year-grid > * {
+  border-radius: 2px;
+}
+
+.year-grid a:hover {
   outline: 2px solid var(--text);
-  outline-offset: 1px;
+  outline-offset: 0;
+}
+
+.year-grid .sev-ok { background: #A3A437; }
+.year-grid .sev-advisory { background: #FBC02D; }
+.year-grid .sev-precaution { background: #FB862B; }
+.year-grid .sev-closed { background: #FF5A5A; }
+
+.year-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.year-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.year-links a {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.year-links a:hover {
+  color: var(--text);
+}
+
+.year-links a[aria-current='page'] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--banner-text);
+}
+
+/* A stage's updates from every alert that covered it, newest first. */
+.timeline-alert {
+  font-size: 0.85rem;
 }
 
 /* Alert cards */
 
 .alert-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -768,6 +878,41 @@ a.stage:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
+}
+
+.stage-all {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 6px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  color: #080C06;
+  text-align: center;
+  text-decoration: none;
+}
+
+.stage-all-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.stage-all-note {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.stage-all.sev-unknown {
+  background: var(--none);
+  color: var(--text);
+}
+
+.stage-all:hover,
+a.stage:hover {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
 }
 
 .alert-where {
@@ -871,47 +1016,82 @@ a.stage:hover {
   background: var(--brand);
 }
 
-/* Timeline of an alert's updates */
+/* Timeline of an alert's updates: a rail of dots, one card-like entry each */
 
 .timeline {
   margin: 0 0 12px;
-  padding: 6px 18px;
+  padding: 4px 18px 4px 20px;
   list-style: none;
 }
 
-.timeline li {
+.timeline > li {
   position: relative;
-  padding: 12px 0 12px 22px;
+  display: grid;
+  gap: 6px;
+  padding: 14px 0 18px 26px;
   border-left: 2px solid var(--border);
 }
 
-.timeline li::before {
+.timeline > li::before {
   content: '';
   position: absolute;
-  top: 17px;
-  left: -7px;
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--surface);
+  top: 18px;
+  left: -8px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--surface);
   border-radius: 50%;
   background: var(--none);
 }
 
-.timeline li.sev-ok::before { background: #A3A437; }
-.timeline li.sev-advisory::before { background: #FBC02D; }
-.timeline li.sev-precaution::before { background: #FB862B; }
-.timeline li.sev-closed::before { background: #FF5A5A; }
-.timeline li.done::before { background: var(--up); }
+.timeline > li.sev-ok::before { background: #A3A437; }
+.timeline > li.sev-advisory::before { background: #FBC02D; }
+.timeline > li.sev-precaution::before { background: #FB862B; }
+.timeline > li.sev-closed::before { background: #FF5A5A; }
+.timeline > li.done::before { background: var(--up); }
+
+.timeline > li:target {
+  background: var(--bg);
+  border-radius: 0 8px 8px 0;
+  padding-right: 14px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
 
 .timeline-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.timeline-kind {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.timeline-when {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .timeline p {
-  margin: 4px 0 0;
+  margin: 0;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.timeline-alert {
+  font-size: 0.85rem;
+}
+
+.timeline-alert a {
+  font-weight: 600;
 }
 
 /* Uptime bars on a system card: 30 days */
@@ -950,6 +1130,12 @@ a.stage:hover {
   position: absolute;
   width: 1px;
   height: 1px;
+  scroll-margin-top: 24px;
+}
+
+.timeline > li:last-child {
+  border-left-color: transparent;
+  padding-bottom: 4px;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;

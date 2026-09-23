@@ -1,0 +1,78 @@
+---
+import { severityClass, type Severity } from '../lib/alerts.ts';
+import type { DayColour } from '../lib/calendar.ts';
+import { formatDate } from '../lib/status.ts';
+import { yearWeeks, type YearCell, type YearMark } from '../lib/year.ts';
+
+interface Props {
+  /** The stage's days that ended with an alert open. */
+  colours: DayColour[];
+  /** The first day shown, as `YYYY-MM-DD`. */
+  from: string;
+  /** The last day shown, as `YYYY-MM-DD`. */
+  to: string;
+  /** What the map covers, for its screen-reader summary, such as "Stage 4 in 2025". */
+  label: string;
+  /** The page's timeline entries, so a day links to the one that set its colour. */
+  marks?: YearMark[];
+}
+
+const { colours, from, to, label, marks = [] } = Astro.props;
+const LABEL: Record<Severity, string> = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' };
+const weeks = yearWeeks(colours, from, to, marks);
+const cells = weeks.flatMap((week) => week.days).filter((cell): cell is YearCell => cell !== null);
+const count = (severity: Severity) => cells.filter((cell) => cell.severity === severity).length;
+const withAlerts = cells.filter((cell) => cell.severity !== 'OK').length;
+
+/**
+ * Writes the tooltip for one day.
+ *
+ * @param cell The day.
+ * @returns The date, the stage's colour at the end of it, and the alerts open then.
+ */
+function describe(cell: YearCell) {
+  const parts = [formatDate(cell.day), LABEL[cell.severity]];
+  if (cell.alerts.length > 0) parts.push(cell.alerts.join(', '));
+  return parts.join(' · ');
+}
+---
+
+<div class="card year">
+  <div class="year-scroll">
+    <div
+      class="year-map"
+      role="img"
+      aria-label={`${label}: ${count('OK')} days open, ${count('ADVISORY')} with an advisory, ${count('PRECAUTION')} with a precaution, ${count('CLOSED')} closed`}
+    >
+      <div class="year-months" aria-hidden="true">
+        {weeks.map((week) => <span>{week.month}</span>)}
+      </div>
+      <div class="year-days" aria-hidden="true">
+        <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+      </div>
+      <div class="year-grid">
+        {
+          weeks.flatMap((week) =>
+            week.days.map((cell) =>
+              cell === null ? (
+                <span class="pad" />
+              ) : cell.anchor ? (
+                <a class={severityClass(cell.severity)} href={`#${cell.anchor}`} data-tip={describe(cell)} tabindex="-1" />
+              ) : (
+                <span class={severityClass(cell.severity)} data-tip={describe(cell)} />
+              ),
+            ),
+          )
+        }
+      </div>
+    </div>
+  </div>
+  <div class="year-foot">
+    <span>{withAlerts === 0 ? 'Open every day shown' : `${withAlerts} days with an alert`}</span>
+    <ul class="stages-legend" aria-hidden="true">
+      {Object.entries(LABEL).map(([sev, text]) => (
+        <li><span class:list={['swatch', severityClass(sev as Severity)]} />{text}</li>
+      ))}
+    </ul>
+  </div>
+</div>

@@ -1,0 +1,78 @@
+---
+import Base from '../../layouts/Base.astro';
+import AlertCard from '../../components/AlertCard.astro';
+import StageHistory from '../../components/StageHistory.astro';
+import { covers, current, severityClass, stages, trail, type StageView } from '../../lib/alerts.ts';
+import { YEAR_DAYS } from '../../lib/year.ts';
+import { addDays, localDay } from '../../../scripts/lib/time.ts';
+
+/**
+ * Lists one page per trail stage, and one for the whole trail.
+ *
+ * @returns Each stage's route, such as `4`, and `overall`, with the stage as the page's
+ *   props; the overall page has none.
+ */
+export function getStaticPaths() {
+  return [
+    { params: { n: 'overall' }, props: { stage: null } },
+    ...stages.map((stage) => ({ params: { n: String(stage.number) }, props: { stage } })),
+  ];
+}
+
+interface Props {
+  stage: StageView | null;
+}
+
+const { stage } = Astro.props;
+const LABEL = { OK: 'Open', ADVISORY: 'Open, with an advisory', PRECAUTION: 'Open with caution', CLOSED: 'Closed' } as const;
+const number = stage?.number ?? null;
+const name = stage ? `Stage ${stage.number}` : 'The whole trail';
+const base = stage ? `/stages/${stage.number}` : '/stages/overall';
+const open = stage ? current.filter((alert) => covers(alert, stage.number)) : current;
+const severity = stage ? severityClass(stage.severity) : trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
+const headline = stage ? LABEL[stage.severity] : trail.headline;
+const to = localDay(new Date());
+const from = addDays(to, 1 - YEAR_DAYS);
+---
+
+<Base
+  section="trail"
+  title={stage ? name : 'Overall'}
+  description={`${name}: ${headline}. Current alerts and the past year, day by day.`}
+>
+  <a class="back" href="/trail">← Trail</a>
+  <h1 class="visually-hidden">{name}</h1>
+
+  <div class="board" role="status">
+    <div class:list={['board-card', 'board-trail', severity]}>
+      <span class="board-label">{stage ? name : 'All stages'}</span>
+      <span class="board-headline">{headline}</span>
+      <span class="board-detail">
+        {open.length === 0 ? 'No active alerts' : `${open.length} active ${open.length === 1 ? 'alert' : 'alerts'}`}
+      </span>
+    </div>
+  </div>
+
+  <section class="zone">
+    {
+      open.length > 0 && (
+        <>
+          <h3 class="zone-sub">Active now</h3>
+          <div class="alert-grid">
+            {open.map((alert) => <AlertCard alert={alert} />)}
+          </div>
+        </>
+      )
+    }
+
+    <h3 class="zone-sub">Past year</h3>
+    <StageHistory
+      stage={number}
+      base={base}
+      from={from}
+      to={to}
+      label={`${name} over the past year`}
+      current="recent"
+    />
+  </section>
+</Base>

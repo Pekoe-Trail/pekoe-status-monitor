@@ -1,0 +1,47 @@
+---
+import Base from '../../../layouts/Base.astro';
+import StageHistory from '../../../components/StageHistory.astro';
+import { alertYears, stages } from '../../../lib/alerts.ts';
+import { localDay } from '../../../../scripts/lib/time.ts';
+
+/**
+ * Lists one page per year the archive holds alerts for, for each stage and for the whole
+ * trail.
+ *
+ * @returns A route for each stage and year, such as `4/2025`, and `overall/2025`.
+ */
+export function getStaticPaths() {
+  const pages = [null, ...stages.map((stage) => stage.number)];
+  return pages.flatMap((number) =>
+    alertYears.map((year) => ({
+      params: { n: number === null ? 'overall' : String(number), year },
+      props: { number, year },
+    })),
+  );
+}
+
+interface Props {
+  number: number | null;
+  year: string;
+}
+
+const { number, year } = Astro.props;
+const name = number === null ? 'The whole trail' : `Stage ${number}`;
+const base = number === null ? '/stages/overall' : `/stages/${number}`;
+const today = localDay(new Date());
+const from = `${year}-01-01`;
+const to = `${year}-12-31` > today ? today : `${year}-12-31`;
+---
+
+<Base
+  section="trail"
+  title={`${number === null ? 'Overall' : name} in ${year}`}
+  description={`Trail alerts on ${name.toLowerCase()} of the Pekoe Trail in ${year}, day by day.`}
+>
+  <a class="back" href={base}>← {name}</a>
+  <h1>{name} in {year}</h1>
+
+  <section class="zone">
+    <StageHistory stage={number} base={base} from={from} to={to} label={`${name} in ${year}`} current={year} />
+  </section>
+</Base>

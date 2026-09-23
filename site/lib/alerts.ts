@@ -22,6 +22,15 @@ export const current: Alert[] = openAlerts(alerts);
 export const past: Alert[] = alerts.filter((a) => a.status === 'CLOSED');
 
 /**
+ * The years the archive holds alerts for, for a stage page's year links.
+ *
+ * @returns The Sri Lanka calendar years, newest first, such as `['2026', '2025']`.
+ */
+export const alertYears: string[] = [
+  ...new Set(alerts.map((alert) => localDay(new Date(alert.publishedAt)).slice(0, 4))),
+].sort((a, b) => b.localeCompare(a));
+
+/**
  * Names the CSS class for a severity. The colours live in the stylesheet, because the
  * Content-Security-Policy forbids inline styles.
  *
@@ -44,7 +53,7 @@ export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()
  * @param stage The stage number.
  * @returns Its path, such as `/stages/4`.
  */
-export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()}/`;
+export const stageHref = (stage: number) => `/stages/${stage}`;
 
 export const KIND_LABEL: Record<Alert['history'][number]['kind'], string> = {
   PUBLISHED: 'Published',
@@ -87,7 +96,7 @@ export function where(alert: Alert): string {
  * @param stage The stage number.
  * @returns True when the alert covers the stage.
  */
-const covers = (alert: Alert, stage: number) =>
+export const covers = (alert: Alert, stage: number) =>
   alert.scope === 'GLOBAL' || alert.stages.some((s) => s.number === stage);
 
 export interface StageView {
@@ -106,6 +115,47 @@ export const stages: StageView[] = (() => {
     return { number, severity: alert?.severity.value ?? 'OK', alert };
   });
 })();
+
+export interface StageStep {
+  alert: Alert;
+  step: Alert['history'][number];
+}
+
+/**
+ * Names a timeline entry, so the yearly map can link to it.
+ *
+ * @param entry The update and its alert.
+ * @returns An element id, such as `psa-0010-1760589000000`.
+ */
+export const stepAnchor = ({ alert, step }: StageStep) =>
+  `${alert.number.toLowerCase()}-${Date.parse(step.createdAt)}`;
+
+/**
+ * Picks the alerts that covered a stage, including all-stages alerts.
+ *
+ * @param stage The stage number, or null for every alert on the trail.
+ * @returns The alerts, in the archive's order, newest first.
+ */
+export const stageAlerts = (stage: number | null): Alert[] =>
+  stage === null ? alerts : alerts.filter((alert) => covers(alert, stage));
+
+/**
+ * Lists every update of every alert that covered a stage, including all-stages alerts.
+ *
+ * @param stage The stage number, or null for the whole trail.
+ * @param from The first day to include, as `YYYY-MM-DD`; open-ended when left out.
+ * @param to The last day to include, as `YYYY-MM-DD`; open-ended when left out.
+ * @returns The updates in the window, newest first, each with its alert.
+ */
+export const stageTimeline = (stage: number | null, from?: string, to?: string): StageStep[] =>
+  stageAlerts(stage)
+    .flatMap((alert) => alert.history.map((step) => ({ alert, step })))
+    .filter(({ step }) => {
+      const day = localDay(new Date(step.createdAt));
+      return (!from || day >= from) && (!to || day <= to);
+    })
+    .sort((a, b) => Date.parse(b.step.createdAt) - Date.parse(a.step.createdAt));
+
 
 export interface TrailSummary {
   severity: Severity | 'unknown';

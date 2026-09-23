@@ -85,9 +85,9 @@ const sev = severityClass(alert.severity.value);
           {timeline(alert).map((step) => (
             <li class:list={[severityClass(step.severity.value), { done: step.kind === 'CLOSED' }]}>
               <div class="timeline-head">
-                <strong>{KIND_LABEL[step.kind]}</strong>
+                <span class="timeline-kind">{KIND_LABEL[step.kind]}</span>
                 <span class:list={['sev', 'sev-small', severityClass(step.severity.value)]}>{step.severity.label}</span>
-                <span class="small muted">{formatDateTime(new Date(step.createdAt))}</span>
+                <time class="timeline-when" datetime={step.createdAt}>{formatDateTime(new Date(step.createdAt))}</time>
               </div>
               {(step.message ?? step.title) && <p>{step.message ?? step.title}</p>}
               <ChannelPills channels={step.channels} />
