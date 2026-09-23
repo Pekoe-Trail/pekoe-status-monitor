@@ -7,9 +7,16 @@ interface Props {
   description?: string;
   /** The page's side of the site, which sets what the footer shows. */
   section: 'trail' | 'system';
+  /** The address to name as this page's own, when it is served at more than one. */
+  canonical?: string;
 }
 
-const { title, description = 'Live status of the Pekoe Trail website, app and services, with uptime history and incident reports.', section } = Astro.props;
+const {
+  title,
+  description = 'Live status of the Pekoe Trail website, app and services, with uptime history and incident reports.',
+  section,
+  canonical,
+} = Astro.props;
 const pageTitle = title ? `${title} · Pekoe Trail Status` : 'Pekoe Trail Status';
 const path = Astro.url.pathname.replace(/\.html$/, '');
 ---
@@ -31,7 +38,7 @@ const path = Astro.url.pathname.replace(/\.html$/, '');
     <script is:inline defer src="/tooltip.js"></script>
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={new URL(path, Astro.site)} />
+    <link rel="canonical" href={new URL(canonical ?? path, Astro.site)} />
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     {section === 'system' && (
