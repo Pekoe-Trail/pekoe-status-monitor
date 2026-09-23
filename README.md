@@ -47,7 +47,6 @@ page: `/` redirects to `/system`.
 | `/system` | Every system's state, with its last 24 hours of checks |
 | `/systems/<id>` | One system: uptime, 24 hours of checks, 30 days of checks, 90 days of uptime, response times, incidents |
 | `/incidents`, `/incidents/<id>` | Incident and maintenance notes |
-| `/status.json`, `/incidents/rss.xml` | The current state as JSON, and incidents as a feed |
 
 Addresses carry no trailing slash: `/trail`, not `/trail/`. Anything else lands on the
 site's own 404 page.
