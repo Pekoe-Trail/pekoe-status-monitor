@@ -112,7 +112,7 @@ describe('fetchAlerts', () => {
   });
 
   it('asks only for the alerts changed since the watermark', async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(body([psa()]))));
+    const fetch = vi.fn(async (url: URL) => new Response(JSON.stringify(body([psa({ id: url.href })]))));
     vi.stubGlobal('fetch', fetch);
 
     await fetchAlerts('https://api.example.com/v1/alerts/public/history', {
@@ -124,7 +124,7 @@ describe('fetchAlerts', () => {
   });
 
   it('asks for everything when there is no watermark', async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(body([psa()]))));
+    const fetch = vi.fn(async (url: URL) => new Response(JSON.stringify(body([psa({ id: url.href })]))));
     vi.stubGlobal('fetch', fetch);
 
     await fetchAlerts('https://api.example.com/x', { timeoutMs: 1000, maxPages: 1 });
