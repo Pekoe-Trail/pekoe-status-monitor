@@ -20,8 +20,9 @@ settings:
   retryDelayMs: 10000
   # Consecutive Down checks before developers are notified.
   confirmAfter: 2
-  # Detailed checks kept; older days survive only as daily totals.
-  keepCheckDays: 7
+  # Detailed checks kept, for the 30-day grid of checks; older days survive only as daily
+  # totals.
+  keepCheckDays: 30
 
 # Trail alerts (PSAs) published in the admin panel, shown on the Trail page.
 # Read every run from the API's public history; the last good copy is kept if it fails.

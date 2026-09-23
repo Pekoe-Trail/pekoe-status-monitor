@@ -1,6 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
 import IncidentList from '../../components/IncidentList.astro';
+import CheckGrid from '../../components/CheckGrid.astro';
+import CheckStrip from '../../components/CheckStrip.astro';
 import ResponseChart from '../../components/ResponseChart.astro';
 import StatusLabel from '../../components/StatusLabel.astro';
 import UptimeBars from '../../components/UptimeBars.astro';
@@ -42,26 +44,35 @@ const stats = [
       {config.url && <> · <a href={config.url}>{new URL(config.url).host}</a></>}
     </p>
 
-  <h2>Uptime</h2>
-  <dl class="stats">
-    {
-      stats.map(([label, value]) => (
-        <div>
-          <dt>{label}</dt>
-          <dd>{formatPercent(value)}</dd>
-        </div>
-      ))
-    }
-  </dl>
+    <h2>Uptime</h2>
+    <dl class="stats">
+      {
+        stats.map(([label, value]) => (
+          <div>
+            <dt>{label}</dt>
+            <dd>{formatPercent(value)}</dd>
+          </div>
+        ))
+      }
+    </dl>
 
-  <h2>Last 90 days</h2>
-  <div class="card system">
-    <UptimeBars system={system} />
+    <h2>Last 24 hours</h2>
+    <div class="card">
+      <CheckStrip system={system} />
+    </div>
+
+    <h2>Last 30 days</h2>
+    <CheckGrid system={system} />
+
+    <h2>Last 90 days</h2>
+    <div class="card">
+      <UptimeBars system={system} />
+    </div>
+
+    <h2>Response time, last 7 days</h2>
+    <ResponseChart system={system} days={7} />
+
+    <h2>Incidents</h2>
+    <IncidentList items={forSystem(config.id)} empty="No incidents recorded." />
   </div>
-
-  <h2>Response time, last 7 days</h2>
-  <ResponseChart system={system} days={7} />
-
-  <h2>Incidents</h2>
-  <IncidentList items={forSystem(config.id)} empty="No incidents recorded." />
 </Base>

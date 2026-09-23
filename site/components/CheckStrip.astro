@@ -1,0 +1,40 @@
+---
+import { STATUS_TEXT, checkStrip, formatPercent, type SystemView } from '../lib/status.ts';
+
+interface Props {
+  system: SystemView;
+  /** How many hours of checks to show. */
+  hours?: number;
+}
+
+const { system, hours = 24 } = Astro.props;
+const checks = checkStrip(system.config.id, hours);
+const date = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Colombo',
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+---
+
+<span
+  class="checks"
+  role="img"
+  aria-label={`${checks.length} checks over the last ${hours} hours, ${formatPercent(system.uptime.day)} up`}
+>
+  {
+    checks.map((check) => (
+      <span
+        class={check.s}
+        data-tip={`${date.format(new Date(check.t))} · ${STATUS_TEXT[check.s]} · ${check.ms} ms`}
+      />
+    ))
+  }
+  {checks.length === 0 && <span class="unknown" data-tip="No checks yet" />}
+</span>
+<span class="bars-legend" aria-hidden="true">
+  <span>{hours} hours ago</span>
+  <span>{checks.length} checks · {formatPercent(system.uptime.day)} up</span>
+  <span>now</span>
+</span>

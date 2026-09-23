@@ -1,0 +1,96 @@
+---
+import { checkStrip, formatDate, type SystemView } from '../lib/status.ts';
+import { localDay } from '../../scripts/lib/time.ts';
+
+interface Props {
+  system: SystemView;
+  /** How many days of checks to show. */
+  days?: number;
+}
+
+/** Checks run every 10 minutes, so a day holds 144 of them. */
+const SLOTS = 144;
+const STATE = { up: 'Operational', degraded: 'Slow', down: 'Down', none: 'No check' };
+
+const { system, days = 30 } = Astro.props;
+const checks = checkStrip(system.config.id, days * 24);
+
+/** Every slot of every day, worst state first when two checks share a slot. */
+const grid = new Map<string, keyof typeof STATE>();
+for (const check of checks) {
+  const at = new Date(check.t);
+  const slot = Math.floor(((at.getTime() - Date.parse(`${localDay(at)}T00:00:00+05:30`)) / 600_000) % SLOTS);
+  const key = `${localDay(at)}|${slot}`;
+  const worst = grid.get(key);
+  if (!worst || check.s === 'down' || (check.s === 'degraded' && worst === 'up')) grid.set(key, check.s);
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const today = localDay(new Date());
+const columns = Array.from({ length: days }, (_, i) => {
+  const day = new Date(`${today}T12:00:00+05:30`);
+  day.setDate(day.getDate() - (days - 1 - i));
+  return localDay(day);
+});
+
+/**
+ * Labels a day column: every fifth day, and the last one. The month is named when it
+ * changes, and on the first label.
+ *
+ * @param day The day, as `YYYY-MM-DD`.
+ * @param i Its place among the columns.
+ * @returns The label, or an empty string for a column that carries none.
+ */
+function dayLabel(day: string, i: number): string {
+  if (i % 5 !== 0 && i !== columns.length - 1) return '';
+  const date = Number(day.slice(8));
+  const month = MONTHS[Number(day.slice(5, 7)) - 1];
+  const newMonth = i === 0 || day.slice(0, 7) !== columns[i - 1].slice(0, 7);
+  return newMonth || date <= 5 ? `${date} ${month}` : String(date);
+}
+
+/**
+ * Writes the time of day a row covers.
+ *
+ * @param slot The slot, 0 to 143.
+ * @returns The time, such as `06:30`.
+ */
+const slotTime = (slot: number) =>
+  `${String(Math.floor(slot / 6)).padStart(2, '0')}:${String((slot % 6) * 10).padStart(2, '0')}`;
+---
+
+<div class="card grid-card">
+  <div class="grid-scroll">
+    <div
+      class="check-grid-wrap"
+      role="img"
+      aria-label={`${system.config.name}: every check of the last ${days} days, one block per 10 minutes`}
+    >
+      <div class="grid-hours" aria-hidden="true">
+        {[0, 6, 12, 18].map((hour) => <span>{String(hour).padStart(2, '0')}:00</span>)}
+      </div>
+      <div class="check-grid">
+        {
+          columns.flatMap((day) =>
+            Array.from({ length: SLOTS }, (_, slot) => {
+              const state = grid.get(`${day}|${slot}`) ?? 'none';
+              return <span class={state} data-tip={`${formatDate(day)}, ${slotTime(slot)} · ${STATE[state]}`} />;
+            }),
+          )
+        }
+      </div>
+      <div class="grid-days" aria-hidden="true">
+        {columns.map((day, i) => <span>{dayLabel(day, i)}</span>)}
+      </div>
+    </div>
+  </div>
+  <div class="year-foot">
+    <span>{days} days · one block per 10 minutes · Sri Lanka time</span>
+    <ul class="stages-legend" aria-hidden="true">
+      <li><span class="swatch none" />No check</li>
+      <li><span class="swatch up" />Operational</li>
+      <li><span class="swatch degraded" />Slow</li>
+      <li><span class="swatch down" />Down</li>
+    </ul>
+  </div>
+</div>

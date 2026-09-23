@@ -6,24 +6,19 @@ interface Props {
 }
 
 const { system } = Astro.props;
-const LEVEL_TEXT = {
-  none: 'No data',
-  up: 'No downtime',
-  minor: 'Some downtime or slow responses',
-  major: 'Major downtime',
-};
+const LEVEL_TEXT = { none: 'No data', up: 'All good', minor: 'Some downtime', major: 'Major downtime' };
 
 /**
  * Writes the tooltip for one day's uptime bar.
  *
  * @param bar The day's bar.
- * @returns The date, its level, and its uptime and average response time when known,
- *   separated by " · ".
+ * @returns The date, its level, and its uptime and average response time when known, kept
+ *   short enough for the tooltip: "1 Sep 2026 · Some downtime · 98.49% · 412 ms".
  */
 function describe(bar: SystemView['bars'][number]) {
   const parts = [formatDate(bar.day), LEVEL_TEXT[bar.level]];
-  if (bar.uptime !== null) parts.push(`${formatPercent(bar.uptime)} uptime`);
-  if (bar.avgMs !== null) parts.push(`${bar.avgMs} ms average`);
+  if (bar.uptime !== null) parts.push(formatPercent(bar.uptime));
+  if (bar.avgMs !== null) parts.push(`${bar.avgMs} ms`);
   return parts.join(' · ');
 }
 ---
@@ -33,7 +28,7 @@ function describe(bar: SystemView['bars'][number]) {
   role="img"
   aria-label={`${system.config.name}: ${formatPercent(system.uptime.quarter)} uptime over the last ${BAR_DAYS} days`}
 >
-  {system.bars.map((bar) => <span class={bar.level} title={describe(bar)} />)}
+  {system.bars.map((bar) => <span class={bar.level} data-tip={describe(bar)} />)}
 </div>
 <div class="bars-legend" aria-hidden="true">
   <span><span class="long">{BAR_DAYS} days ago</span><span class="short">30 days ago</span></span>

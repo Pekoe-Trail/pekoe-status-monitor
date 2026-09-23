@@ -1,15 +1,13 @@
 ---
+import CheckStrip from './CheckStrip.astro';
 import StatusLabel from './StatusLabel.astro';
-import { formatDate, formatPercent, type SystemView } from '../lib/status.ts';
+import type { SystemView } from '../lib/status.ts';
 
 interface Props {
   system: SystemView;
 }
 
-const DAYS = 30;
 const { system } = Astro.props;
-const bars = system.bars.slice(-DAYS);
-const LEVEL_TEXT = { none: 'No data', up: 'No downtime', minor: 'Some downtime', major: 'Major downtime' };
 ---
 
 <a class="system-card" href={`/systems/${system.config.id}`}>
@@ -18,11 +16,5 @@ const LEVEL_TEXT = { none: 'No data', up: 'No downtime', minor: 'Some downtime',
     <StatusLabel status={system.status} />
   </span>
   <span class="system-desc">{system.config.description}</span>
-  <span class="bars bars-30" role="img" aria-label={`${formatPercent(system.uptime.month)} uptime over the last ${DAYS} days`}>
-    {bars.map((bar) => <span class={bar.level} title={`${formatDate(bar.day)} · ${LEVEL_TEXT[bar.level]}`} />)}
-  </span>
-  <span class="bars-legend" aria-hidden="true">
-    <span>{DAYS} days</span>
-    <span>{formatPercent(system.uptime.month)} uptime</span>
-  </span>
+  <CheckStrip system={system} />
 </a>

@@ -61,6 +61,18 @@ export function recentChecks(id: string, days: number): CheckResult[] {
 }
 
 /**
+ * Reads a system's checks of the last few hours, for its strip of checks.
+ *
+ * @param id The system id.
+ * @param hours How far back to go.
+ * @returns The checks in that window, oldest first.
+ */
+export function checkStrip(id: string, hours: number): CheckResult[] {
+  const from = Date.now() - hours * 60 * 60_000;
+  return recentChecks(id, Math.ceil(hours / 24) + 1).filter((check) => Date.parse(check.t) >= from);
+}
+
+/**
  * Builds what the page shows for one system: its state, 90 days of bars, and uptime over
  * the last 24 hours, 7, 30 and 90 days.
  *

@@ -40,6 +40,48 @@ const line = passing.map((c, i) => `${i === 0 ? 'M' : 'L'}${x(c.t)},${y(c.ms)}`)
 const area = passing.length ? `${line}L${x(passing.at(-1)!.t)},${H}L${x(passing[0].t)},${H}Z` : '';
 const average = passing.length ? Math.round(sorted.reduce((a, b) => a + b, 0) / sorted.length) : null;
 const gridLines = [0.25, 0.5, 0.75].map((f) => H * f);
+
+/** The chart is hovered an hour at a time, on the hour in Sri Lanka, which is UTC+5:30. */
+const HOUR = 60 * 60_000;
+const OFFSET = 5.5 * HOUR;
+const firstHour = Math.ceil((start + OFFSET) / HOUR) * HOUR - OFFSET;
+const edges = [start, ...Array.from({ length: Math.ceil((end - firstHour) / HOUR) }, (_, i) => firstHour + i * HOUR), end];
+const when = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Colombo',
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/**
+ * Sums up the checks of one hour for its hover band.
+ *
+ * @param from The hour's start, in milliseconds.
+ * @param to The hour's end, in milliseconds.
+ * @returns The band's place on the chart and what its tooltip says; null when no check ran.
+ */
+function band(from: number, to: number) {
+  const inHour = checks.filter((c) => {
+    const t = Date.parse(c.t);
+    return t >= from && t < to;
+  });
+  if (inHour.length === 0) return null;
+  const answered = inHour.filter((c) => c.s !== 'down');
+  const down = inHour.length - answered.length;
+  const avg = answered.length ? Math.round(answered.reduce((sum, c) => sum + c.ms, 0) / answered.length) : null;
+  const parts = [when.format(new Date(from)), `${inHour.length} checks`];
+  if (avg !== null) parts.push(`${avg} ms`);
+  if (down > 0) parts.push(`${down} down`);
+  const place = (t: number) => ((t - start) / (end - start)) * W;
+  return {
+    x: place(from).toFixed(1),
+    width: Math.max(place(to) - place(from), 0.1).toFixed(1),
+    tip: parts.join(' · '),
+  };
+}
+
+const hovers = edges.slice(0, -1).map((from, i) => band(from, edges[i + 1])).filter((b) => b !== null);
 ---
 
 <div class="card chart">
@@ -58,10 +100,23 @@ const gridLines = [0.25, 0.5, 0.75].map((f) => H * f);
           <path class="area" d={area} />
           <path class="line" d={line} />
           {failing.map((c) => <rect class="fail" x={x(c.t)} y={H - 6} width="3" height="6" />)}
+          {
+            hovers.map((hover) => (
+              <rect class="band" x={hover.x} y="0" width={hover.width} height={H} data-tip={hover.tip} />
+            ))
+          }
         </svg>
         <div class="chart-axis">
           <span>{formatDate(new Date(start))}</span>
-          <span>{average !== null ? `${average} ms average · top of chart ${Math.round(max)} ms` : ''}</span>
+          <span class="chart-note">
+            {average !== null && <span>{average} ms average · top of chart {Math.round(max)} ms</span>}
+            {failing.length > 0 && (
+              <span class="chart-key">
+                <span class="swatch down" />
+                {failing.length} down
+              </span>
+            )}
+          </span>
           <span>Now</span>
         </div>
       </>

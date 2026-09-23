@@ -372,7 +372,7 @@ h2 {
 
 .system-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -449,13 +449,55 @@ h2 {
 @media (max-width: 560px) {
   /* 90 blocks are too thin on a phone; show the last 30 days. */
   .bars { grid-template-columns: repeat(30, 1fr); }
-  .bars:not(.bars-30) span:nth-child(-n + 60) { display: none; }
+  .bars span:nth-child(-n + 60) { display: none; }
   .bars-legend .long { display: none; }
   .bars-legend .short { display: inline; }
 }
 
 .bars-legend .short {
   display: none;
+}
+
+/* A system's page: sections, its heading and its status */
+
+.system-page h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 30px 0 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.system-page h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.system-page .card {
+  padding: 16px 18px 12px;
+}
+
+.system-page .system-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 4px;
+}
+
+.system-page .system-title h1 {
+  margin: 0;
+}
+
+.system-page .system-where {
+  margin: 0 0 4px;
+  color: var(--muted);
 }
 
 /* Stats */
@@ -519,6 +561,15 @@ h2 {
   fill: var(--major);
 }
 
+.chart .band {
+  fill: var(--text);
+  fill-opacity: 0;
+}
+
+.chart .band:hover {
+  fill-opacity: 0.07;
+}
+
 .chart .grid {
   stroke: var(--border);
   stroke-width: 1;
@@ -528,9 +579,25 @@ h2 {
 .chart-axis {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   color: var(--muted);
   font-size: 0.78rem;
   margin-top: 6px;
+}
+
+.chart-note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  text-align: center;
+}
+
+/* The red ticks along the foot of the chart, one per failed check. */
+.chart-key {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* Incidents */
@@ -701,6 +768,41 @@ a.incident:hover .incident-title {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.stage-all {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 6px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  color: #080C06;
+  text-align: center;
+  text-decoration: none;
+}
+
+.stage-all-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.stage-all-note {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.stage-all.sev-unknown {
+  background: var(--none);
+  color: var(--text);
+}
+
+.stage-all:hover,
+a.stage:hover {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
 }
 
 .stage {
@@ -880,41 +982,6 @@ a.stage.sev-ok:hover {
   gap: 6px 8px;
 }
 
-.stage-all {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  margin-bottom: 6px;
-  padding: 9px 14px;
-  border-radius: 8px;
-  color: #080C06;
-  text-align: center;
-  text-decoration: none;
-}
-
-.stage-all-name {
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.stage-all-note {
-  font-size: 0.75rem;
-  font-weight: 500;
-  opacity: 0.75;
-}
-
-.stage-all.sev-unknown {
-  background: var(--none);
-  color: var(--text);
-}
-
-.stage-all:hover,
-a.stage:hover {
-  outline: 2px solid var(--text);
-  outline-offset: 1px;
-}
-
 .alert-where {
   color: var(--muted);
   font-size: 0.8rem;
@@ -1030,6 +1097,12 @@ a.stage:hover {
   gap: 6px;
   padding: 14px 0 18px 26px;
   border-left: 2px solid var(--border);
+  scroll-margin-top: 24px;
+}
+
+.timeline > li:last-child {
+  border-left-color: transparent;
+  padding-bottom: 4px;
 }
 
 .timeline > li::before {
@@ -1094,11 +1167,106 @@ a.stage:hover {
   font-weight: 600;
 }
 
-/* Uptime bars on a system card: 30 days */
+/* Check grid: a column per day, a row per 10 minutes of it */
 
-.bars.bars-30 {
-  grid-template-columns: repeat(30, 1fr);
-  height: 24px;
+.grid-card {
+  padding: 16px 18px 12px;
+}
+
+.grid-scroll {
+  overflow-x: auto;
+}
+
+.check-grid-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'hours grid' '. days';
+  gap: 6px 8px;
+  min-width: 300px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.check-grid {
+  grid-area: grid;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(144, 3px);
+  column-gap: 2px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.check-grid span {
+  background: var(--none);
+  opacity: 0.5;
+}
+
+.check-grid .up { background: var(--up); opacity: 1; }
+.check-grid .degraded { background: var(--minor); opacity: 1; }
+.check-grid .down { background: var(--major); opacity: 1; }
+
+/* Four labels, each over six hours of rows: 36 rows of 3px. */
+.grid-hours {
+  grid-area: hours;
+  display: grid;
+  grid-template-rows: repeat(4, 108px);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-days {
+  grid-area: days;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-days span {
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  /* Thin columns are unreadable on a phone, so the grid scrolls sideways instead. */
+  .check-grid,
+  .grid-days {
+    grid-auto-columns: 9px;
+  }
+}
+
+.swatch.up { background: var(--up); }
+.swatch.degraded { background: var(--minor); }
+.swatch.down { background: var(--major); }
+.swatch.none { background: var(--none); opacity: 0.5; }
+
+/* One segment per check, every 10 minutes */
+
+.checks {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  height: 28px;
+}
+
+.checks span {
+  border-radius: 1px;
+  background: var(--none);
+}
+
+.checks .up { background: var(--up); }
+.checks .degraded { background: var(--minor); }
+.checks .down { background: var(--major); }
+
+.checks + .bars-legend {
+  gap: 12px;
+}
+
+.checks + .bars-legend span:nth-child(2) {
+  margin-inline: auto;
 }
 
 .empty {
@@ -1120,26 +1288,6 @@ a.stage:hover {
   color: var(--brand-strong);
 }
 
-.back {
-  display: inline-block;
-  margin-bottom: 16px;
-  font-size: 0.9rem;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  scroll-margin-top: 24px;
-}
-
-.timeline > li:last-child {
-  border-left-color: transparent;
-  padding-bottom: 4px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 /* Hover tooltip for the maps, grids and bars, placed by public/tooltip.js */
 
 .tip {
@@ -1222,3 +1370,17 @@ a.stage:hover {
   background: var(--surface);
 }
 
+.back {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
