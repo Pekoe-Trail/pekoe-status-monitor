@@ -85,11 +85,11 @@ Trail alerts (PSAs) are published in the admin panel, not here. Each run reads t
 the public `alerts.historyUrl` in [`config/systems.yml`](config/systems.yml) and keeps only
 the fields the [Trail page](https://status.thepekoetrail.org/trail) shows.
 
-Only the first run reads the whole register. After that a run asks for the alerts changed
-since the newest change it already has, using the `updatedSince` watermark, so it normally
-reads one short page. An alert's `updatedAt` moves whenever it is published, updated or
-closed, so a closure of a years-old alert arrives the same way a new one does. An API that
-doesn't know `updatedSince` yet answers a plain read instead.
+Only the first run reads the whole register. After that a run asks for the alerts published
+since the newest one it already has, using the `updatedSince` watermark, so it normally reads
+one short page. A PSA is published once, about an incident, and never edited: an update or an
+all-clear is a new PSA. An API that doesn't know `updatedSince` yet answers a plain read
+instead.
 
 They are kept for good, one file per year under `alerts/`, so years of trail history stay on
 the stage pages. A run updates the alerts it read and adds new ones, and never drops one it
@@ -97,11 +97,18 @@ no longer reaches, whether because the read is capped at `alerts.maxPages` or be
 alert left the register. A year's file is rewritten only when that year changed. If the API
 can't be reached, the last copy stays, so the page keeps showing the alert history.
 
+Which alerts a stage shows now is worked out here, the way the register does it, rather than
+taken from the API's `current` flag, which goes stale once an alert is saved. A stage shows
+the newest alert of each open incident on it, unless that alert is OK. When nothing is open
+there, it shows its newest alert if that is an OK, as the all-clear. Incidents may overlap: a
+landslide during a cyclone is its own incident, and clearing one leaves the other.
+
 **The yearly map** on a stage page colours each day with the stage's colour at the end of
-that day, as the website banner showed it. Only updates sent to the website count, so a
-push-only reminder doesn't repaint the map; a colour carries over from day to day until a
-website update changes it, and a resolved alert leaves the stage Open (green). Clicking a
-day scrolls to the update that set its colour.
+that day, as the website banner showed it. Only alerts sent to the website count, so a
+push-only reminder doesn't repaint the map. Each incident on the stage keeps its colour from
+day to day until a newer alert of that incident there changes it, an OK alert takes it off
+the stage, and overlapping incidents show the worst of them. Clicking a day scrolls to the
+alert that set its colour.
 
 ## Working locally
 
