@@ -1,5 +1,5 @@
 ---
-import { severityClass, stages, trail } from '../lib/alerts.ts';
+import { alertTitle, severityClass, stages, trail } from '../lib/alerts.ts';
 
 const LABEL = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
 const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
@@ -22,7 +22,7 @@ const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(tra
       </a>
       <ol class="stage-strip">
         {stages.map((stage) => {
-          const label = `Stage ${stage.number}: ${LABEL[stage.severity]}${stage.alert ? `, ${stage.alert.title ?? stage.alert.category.label}` : ''}`;
+          const label = `Stage ${stage.number}: ${LABEL[stage.severity]}${stage.alert ? `, ${alertTitle(stage.alert)}` : ''}`;
           return (
             <li>
               <a class:list={['stage', severityClass(stage.severity)]} href={`/stages/${stage.number}`} data-tip={label} aria-label={label}>

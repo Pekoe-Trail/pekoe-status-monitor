@@ -16,14 +16,12 @@ const alert = (id: string, publishedAt: string) =>
   ({
     id,
     number: id.toUpperCase(),
-    scope: 'GLOBAL',
-    status: 'CLOSED',
     severity: { value: 'ADVISORY', label: 'Advisory' },
     category: { label: 'Weather' },
-    stages: [],
+    incident: { id: 'i1', number: 'TPTO-INC-00000001', description: 'Heavy rain', status: 'OPEN' },
+    stages: [{ number: 4 }],
     publishedAt,
-    updatedAt: publishedAt,
-    history: [],
+    channels: ['WEBSITE'],
   }) as unknown as Alert;
 
 describe('Store alerts', () => {

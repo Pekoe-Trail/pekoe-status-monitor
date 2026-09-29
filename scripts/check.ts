@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { fetchAlerts, lastUpdatedAt, mergeAlerts, type Alert } from './lib/alerts.ts';
+import { fetchAlerts, lastPublishedAt, mergeAlerts, type Alert } from './lib/alerts.ts';
 import { loadConfig, type SystemConfig } from './lib/config.ts';
 import { runCheck } from './lib/checks.ts';
 import { inMaintenance, readMaintenance } from './lib/incidents.ts';
@@ -91,7 +91,7 @@ if (config.alerts && (!only || only.includes('alerts'))) {
   let updatedAt = saved?.updatedAt;
   let changed = false;
   const { historyUrl, maxPages } = config.alerts;
-  const since = lastUpdatedAt(saved?.alerts ?? []);
+  const since = lastPublishedAt(saved?.alerts ?? []);
   try {
     let read: Alert[];
     try {

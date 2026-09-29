@@ -10,7 +10,7 @@ export interface YearCell {
   day: string;
   /** The stage's colour at the end of the day, as the website and app showed it */
   severity: Severity;
-  /** The numbers of the alerts open at the end of the day, such as `PSA-0042` */
+  /** The numbers of the alerts open at the end of the day, such as `TPTO-PSA-00000042` */
   alerts: string[];
   /** The timeline entry that set the day's colour: the last update by the end of the day */
   anchor: string | null;

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  currentAlerts,
   fetchAlerts,
-  lastUpdatedAt,
+  lastPublishedAt,
   mergeAlerts,
-  openAlerts,
   parsePage,
   type Alert,
 } from '../scripts/lib/alerts.ts';
@@ -17,35 +17,25 @@ import {
 function psa(overrides: Record<string, unknown> = {}) {
   return {
     id: 'a1',
-    number: 'PSA-0001',
-    scope: 'GLOBAL',
-    status: 'OPEN',
-    severity: { value: 'ADVISORY', rank: 1, label: 'Advisory', hex: '#FBC02D' },
+    number: 'TPTO-PSA-00000001',
+    current: true,
+    severity: { value: 'ADVISORY', rank: 1, colour: 'Yellow', label: 'Advisory', hex: '#FBC02D' },
     category: { value: 'WEATHER_LANDSLIDES', label: 'Weather & Landslides' },
-    reason: 'Landslide risk after heavy rain',
+    incident: {
+      id: 'i1',
+      number: 'TPTO-INC-00000001',
+      description: 'Landslide risk after heavy rain',
+      status: 'OPEN',
+    },
     title: 'Heavy rain across the trail',
     impact: 'Paths are slippery.',
     action: 'Wear good boots.',
-    link: null,
-    linkLabel: null,
+    links: [],
     reviewAt: null,
-    stages: [],
+    stages: [{ id: 's4', number: 4 }],
     translations: [{ localeId: 'en', title: 'Heavy rain across the trail' }],
     publishedAt: '2026-09-20T03:30:00.000Z',
-    updatedAt: '2026-09-20T03:30:00.000Z',
-    closedAt: null,
-    resolution: null,
-    history: [
-      {
-        kind: 'PUBLISHED',
-        severity: { value: 'ADVISORY', label: 'Advisory' },
-        reviewAt: null,
-        createdAt: '2026-09-20T03:30:00.000Z',
-        title: 'Heavy rain across the trail',
-        message: null,
-        channels: ['WEBSITE', 'APP', 'PUSH'],
-      },
-    ],
+    channels: ['WEBSITE', 'HOMEPAGE', 'APP', 'PUSH'],
     ...overrides,
   };
 }
@@ -69,17 +59,29 @@ describe('parsePage', () => {
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).not.toHaveProperty('translations');
     expect(alerts[0]).not.toHaveProperty('reviewAt');
+    expect(alerts[0]).not.toHaveProperty('current');
     expect(alerts[0].severity).toEqual({ value: 'ADVISORY', label: 'Advisory' });
+    expect(alerts[0].stages).toEqual([{ number: 4 }]);
   });
 
-  it('keeps each update\'s channels in order, dropping ones it does not know', () => {
-    const step = { ...psa().history[0], channels: ['EMAIL', 'SMS', 'WEBSITE'] };
-    const { alerts } = parsePage(body([psa({ history: [step] }), psa({ id: 'a2', history: [{ ...step, channels: undefined }] })]));
-    expect(alerts.map((a) => a.history[0].channels)).toEqual([['WEBSITE', 'EMAIL'], []]);
+  it("keeps an alert's channels in order, dropping ones it does not know", () => {
+    const { alerts } = parsePage(
+      body([
+        psa({ channels: ['EMAIL', 'SMS', 'HOMEPAGE', 'WEBSITE'] }),
+        psa({ id: 'a2', channels: undefined }),
+      ]),
+    );
+    expect(alerts.map((a) => a.channels)).toEqual([['WEBSITE', 'HOMEPAGE', 'EMAIL'], []]);
   });
 
   it('skips an alert with an unexpected shape', () => {
-    const { alerts } = parsePage(body([psa(), psa({ id: 'a2', severity: { value: 'PURPLE', label: 'x' } })]));
+    const { alerts } = parsePage(
+      body([
+        psa(),
+        psa({ id: 'a2', severity: { value: 'PURPLE', label: 'x' } }),
+        psa({ id: 'a3', incident: undefined }),
+      ]),
+    );
     expect(alerts.map((a) => a.id)).toEqual(['a1']);
   });
 
@@ -94,7 +96,13 @@ describe('fetchAlerts', () => {
   it('follows pages up to the limit and drops non-https links', async () => {
     const fetch = vi.fn(async (url: URL) => {
       const n = Number(url.searchParams.get('pageNumber'));
-      const item = psa({ id: `p${n}`, link: n === 1 ? 'http://example.com' : 'https://example.com' });
+      const item = psa({
+        id: `p${n}`,
+        links: [
+          { url: n === 1 ? 'http://example.com' : 'https://example.com', label: null },
+          { url: 'https://example.com/map', label: 'Map' },
+        ],
+      });
       return new Response(JSON.stringify(body([item], n + 1)));
     });
     vi.stubGlobal('fetch', fetch);
@@ -105,13 +113,13 @@ describe('fetchAlerts', () => {
     });
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch.mock.calls[0][0].searchParams.get('perPage')).toBe('50');
-    expect(alerts.map((a) => [a.id, a.link])).toEqual([
-      ['p1', null],
-      ['p2', 'https://example.com'],
+    expect(alerts.map((a) => [a.id, a.links.map((link) => link.url)])).toEqual([
+      ['p1', ['https://example.com/map']],
+      ['p2', ['https://example.com', 'https://example.com/map']],
     ]);
   });
 
-  it('asks only for the alerts changed since the watermark', async () => {
+  it('asks only for the alerts published since the watermark', async () => {
     const fetch = vi.fn(async (url: URL) => new Response(JSON.stringify(body([psa({ id: url.href })]))));
     vi.stubGlobal('fetch', fetch);
 
@@ -137,26 +145,98 @@ describe('fetchAlerts', () => {
   });
 });
 
-describe('openAlerts', () => {
-  it('lists open alerts, most severe first, then most recently updated', () => {
-    const { alerts } = parsePage(
-      body([
-        psa({ id: 'old-advisory', updatedAt: '2026-09-01T00:00:00Z' }),
-        psa({ id: 'closure', severity: { value: 'CLOSED', label: 'Closed' } }),
-        psa({ id: 'new-advisory', updatedAt: '2026-09-21T00:00:00Z' }),
-        psa({ id: 'done', status: 'CLOSED', severity: { value: 'CLOSED', label: 'Closed' } }),
-      ]),
-    );
-    expect(openAlerts(alerts as Alert[]).map((a) => a.id)).toEqual(['closure', 'new-advisory', 'old-advisory']);
+describe('currentAlerts', () => {
+  /**
+   * Builds an alert of one incident.
+   *
+   * @param id Its id.
+   * @param publishedAt When it was published.
+   * @param incident Its incident's id.
+   * @param stages The stages it covers.
+   * @param severity Its severity.
+   * @param status Its incident's status when it was read.
+   * @returns The alert.
+   */
+  const about = (
+    id: string,
+    publishedAt: string,
+    incident: string,
+    stages: number[],
+    severity = 'ADVISORY',
+    status = 'OPEN',
+  ) =>
+    psa({
+      id,
+      publishedAt,
+      incident: { id: incident, number: incident, description: incident, status },
+      stages: stages.map((number) => ({ id: `s${number}`, number })),
+      severity: { value: severity, label: severity },
+    });
+
+  /**
+   * Reads PSAs through the page parser and picks the ones showing now.
+   *
+   * @param items The PSAs as the API returns them.
+   * @returns The ids of the alerts showing, in display order.
+   */
+  const current = (...items: ReturnType<typeof psa>[]) =>
+    currentAlerts(parsePage(body(items)).alerts).map((a) => a.id);
+
+  it('shows the newest alert of each incident on each stage, most severe first', () => {
+    expect(
+      current(
+        about('slide-old', '2026-09-01T00:00:00Z', 'slide', [4]),
+        about('slide-new', '2026-09-20T00:00:00Z', 'slide', [4]),
+        about('cyclone', '2026-09-10T00:00:00Z', 'cyclone', [4, 5], 'CLOSED'),
+      ),
+    ).toEqual(['cyclone', 'slide-new']);
+  });
+
+  it('keeps an overlapping incident when another one clears', () => {
+    expect(
+      current(
+        about('cyclone', '2026-09-10T00:00:00Z', 'cyclone', [4, 5], 'CLOSED'),
+        about('slide', '2026-09-12T00:00:00Z', 'slide', [4], 'PRECAUTION'),
+        about('slide-clear', '2026-09-15T00:00:00Z', 'slide', [4], 'OK', 'CLOSED'),
+      ),
+    ).toEqual(['cyclone']);
+  });
+
+  it("keeps an incident's alert on the stages an OK alert did not clear", () => {
+    expect(
+      current(
+        about('cyclone', '2026-09-10T00:00:00Z', 'cyclone', [4, 5], 'CLOSED'),
+        about('cyclone-4-clear', '2026-09-15T00:00:00Z', 'cyclone', [4], 'OK'),
+      ),
+    ).toEqual(['cyclone', 'cyclone-4-clear']);
+  });
+
+  it("shows a stage's all-clear once nothing is open there", () => {
+    expect(
+      current(
+        about('red', '2026-09-01T00:00:00Z', 'slide', [4], 'CLOSED'),
+        about('green', '2026-09-20T00:00:00Z', 'slide', [4], 'OK', 'CLOSED'),
+      ),
+    ).toEqual(['green']);
+  });
+
+  it('reads an incident as closed from its newest alert, even when older copies say open', () => {
+    expect(
+      current(
+        about('slide-4', '2026-09-01T00:00:00Z', 'slide', [4], 'CLOSED', 'OPEN'),
+        about('slide-5-clear', '2026-09-20T00:00:00Z', 'slide', [5], 'OK', 'CLOSED'),
+      ),
+    ).toEqual(['slide-5-clear']);
   });
 });
 
-describe('lastUpdatedAt', () => {
-  const at = (id: string, updatedAt: string) => ({ ...psa({ id, updatedAt }) }) as unknown as Alert;
+describe('lastPublishedAt', () => {
+  const at = (id: string, publishedAt: string) =>
+    ({ ...psa({ id, publishedAt }) }) as unknown as Alert;
 
-  it('takes the newest change in the archive, whatever the order', () => {
+  it('takes the newest alert in the archive, whatever the order', () => {
     expect(
-      lastUpdatedAt([
+      lastPublishedAt([
         at('a', '2026-09-20T06:00:00.000Z'),
         at('b', '2026-09-23T04:30:00.000Z'),
         at('c', '2026-01-01T00:00:00.000Z'),
@@ -165,13 +245,16 @@ describe('lastUpdatedAt', () => {
   });
 
   it('has no watermark for an empty archive', () => {
-    expect(lastUpdatedAt([])).toBeUndefined();
+    expect(lastPublishedAt([])).toBeUndefined();
   });
 });
 
 describe('mergeAlerts', () => {
-  const saved = (id: string, publishedAt: string, status = 'OPEN') =>
-    ({ ...psa({ id, publishedAt, status }), severity: { value: 'ADVISORY', label: 'Advisory' } }) as unknown as Alert;
+  const saved = (id: string, publishedAt: string, title = 'Heavy rain across the trail') =>
+    ({
+      ...psa({ id, publishedAt, title }),
+      severity: { value: 'ADVISORY', label: 'Advisory' },
+    }) as unknown as Alert;
 
   it('keeps alerts the read no longer reaches', () => {
     const old = saved('old', '2025-01-01T00:00:00.000Z');
@@ -181,10 +264,10 @@ describe('mergeAlerts', () => {
 
   it('replaces an alert with the copy just read', () => {
     const before = saved('a1', '2026-09-01T00:00:00.000Z');
-    const after = saved('a1', '2026-09-01T00:00:00.000Z', 'CLOSED');
+    const after = saved('a1', '2026-09-01T00:00:00.000Z', 'Rain has eased');
     const merged = mergeAlerts([before], [after]);
     expect(merged).toHaveLength(1);
-    expect(merged[0].status).toBe('CLOSED');
+    expect(merged[0].title).toBe('Rain has eased');
   });
 
   it('orders every alert newest first', () => {
