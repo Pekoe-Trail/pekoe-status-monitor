@@ -15,15 +15,15 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "astro": "^7.3.3",
+    "astro": "^7.3.5",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3",
-    "vitest": "^5.0.1"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
   }
 }
