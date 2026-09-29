@@ -2,11 +2,11 @@
 import Base from '../../layouts/Base.astro';
 import ChannelPills from '../../components/ChannelPills.astro';
 import {
-  KIND_LABEL,
-  alertChannels,
+  alertHref,
+  alertTitle,
   alerts,
+  current,
   severityClass,
-  timeline,
   where,
   type Alert,
 } from '../../lib/alerts.ts';
@@ -15,7 +15,7 @@ import { formatDateTime } from '../../lib/status.ts';
 /**
  * Lists one page per trail alert, named after its lower-cased number.
  *
- * @returns Each alert's route, such as `psa-0042`, with the alert as the page's props.
+ * @returns Each alert's route, such as `tpto-psa-00000042`, with the alert as the page's props.
  */
 export function getStaticPaths() {
   return alerts.map((alert) => ({ params: { id: alert.number.toLowerCase() }, props: { alert } }));
@@ -26,38 +26,50 @@ interface Props {
 }
 
 const { alert } = Astro.props;
-const title = alert.title ?? alert.reason ?? alert.category.label;
-const open = alert.status === 'OPEN';
+const title = alertTitle(alert);
+const showing = current.includes(alert);
 const sev = severityClass(alert.severity.value);
+const later = alerts
+  .filter(
+    (other) =>
+      Date.parse(other.publishedAt) > Date.parse(alert.publishedAt) &&
+      other.stages.some((s) => alert.stages.some((mine) => mine.number === s.number)),
+  )
+  .sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt));
+const replacedBy = showing
+  ? undefined
+  : (later.find((other) => other.incident.id === alert.incident.id) ?? later[0]);
 ---
 
 <Base section="trail" title={title} description={`${alert.severity.label}, ${where(alert)}: ${title}`}>
   <a class="back" href="/trail">← Trail</a>
 
-  <div class:list={['alert-hero', sev, { done: !open }]}>
+  <div class:list={['alert-hero', sev, { done: !showing }]}>
     <div class="alert-card-top">
       <span class:list={['sev', sev]}>{alert.severity.label}</span>
-      {open ? <span class="tag">Active</span> : <span class="tag">Resolved</span>}
+      {showing ? <span class="tag">Showing now</span> : <span class="tag">Replaced</span>}
       <span class="alert-where">{alert.number}</span>
     </div>
     <h1>{title}</h1>
     <dl class="alert-facts">
       <div><dt>Where</dt><dd>{where(alert)}</dd></div>
       <div><dt>Category</dt><dd>{alert.category.label}</dd></div>
+      <div><dt>Incident</dt><dd>{alert.incident.number}: {alert.incident.description}</dd></div>
       {
-        alertChannels(alert).length > 0 && (
+        alert.channels.length > 0 && (
           <div>
             <dt>Alert sent via</dt>
-            <dd><ChannelPills channels={alertChannels(alert)} heading={false} /></dd>
+            <dd><ChannelPills channels={alert.channels} heading={false} /></dd>
           </div>
         )
       }
       <div><dt>Published</dt><dd>{formatDateTime(new Date(alert.publishedAt))}</dd></div>
       {
-        alert.closedAt ? (
-          <div><dt>Resolved</dt><dd>{formatDateTime(new Date(alert.closedAt))}</dd></div>
-        ) : (
-          <div><dt>Last update</dt><dd>{formatDateTime(new Date(alert.updatedAt))}</dd></div>
+        replacedBy && (
+          <div>
+            <dt>Replaced</dt>
+            <dd>{formatDateTime(new Date(replacedBy.publishedAt))}</dd>
+          </div>
         )
       }
     </dl>
@@ -66,35 +78,23 @@ const sev = severityClass(alert.severity.value);
   <div class="card prose">
     {alert.impact && (<><h2>What's happening</h2><p>{alert.impact}</p></>)}
     {alert.action && (<><h2>What to do</h2><p>{alert.action}</p></>)}
-    {alert.resolution && (<><h2>Resolution</h2><p>{alert.resolution}</p></>)}
-    {alert.reason && alert.reason !== title && (<><h2>Reason</h2><p>{alert.reason}</p></>)}
     {
-      alert.link && (
+      alert.links.map((link) => (
         <p>
-          <a class="button" href={alert.link} rel="noopener noreferrer">{alert.linkLabel ?? 'Learn more'} →</a>
+          <a class="button" href={link.url} rel="noopener noreferrer">{link.label ?? 'Learn more'} →</a>
         </p>
-      )
+      ))
     }
   </div>
 
   {
-    alert.history.length > 0 && (
-      <>
-        <h2>Timeline</h2>
-        <ol class="timeline card">
-          {timeline(alert).map((step) => (
-            <li class:list={[severityClass(step.severity.value), { done: step.kind === 'CLOSED' }]}>
-              <div class="timeline-head">
-                <span class="timeline-kind">{KIND_LABEL[step.kind]}</span>
-                <span class:list={['sev', 'sev-small', severityClass(step.severity.value)]}>{step.severity.label}</span>
-                <time class="timeline-when" datetime={step.createdAt}>{formatDateTime(new Date(step.createdAt))}</time>
-              </div>
-              {(step.message ?? step.title) && <p>{step.message ?? step.title}</p>}
-              <ChannelPills channels={step.channels} />
-            </li>
-          ))}
-        </ol>
-      </>
+    replacedBy && (
+      <p class="small muted">
+        Replaced by{' '}
+        <a href={alertHref(replacedBy)}>
+          {replacedBy.number}: {alertTitle(replacedBy)}
+        </a>.
+      </p>
     )
   }
   <p class="small muted">Times are Sri Lanka time.</p>

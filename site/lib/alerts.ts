@@ -1,8 +1,7 @@
 import { loadConfig } from '../../scripts/lib/config.ts';
 import {
-  CHANNELS,
   SEVERITIES,
-  openAlerts,
+  currentAlerts,
   type Alert,
   type Channel,
   type Severity,
@@ -18,8 +17,8 @@ const stageCount = loadConfig().alerts?.stages ?? 0;
 export const hasAlerts = !!file;
 export const alertsUpdatedAt = file ? new Date(file.updatedAt) : null;
 export const alerts: Alert[] = file?.alerts ?? [];
-export const current: Alert[] = openAlerts(alerts);
-export const past: Alert[] = alerts.filter((a) => a.status === 'CLOSED');
+export const current: Alert[] = currentAlerts(alerts);
+export const past: Alert[] = alerts.filter((alert) => !current.includes(alert));
 
 /**
  * The years the archive holds alerts for, for a stage page's year links.
@@ -43,7 +42,7 @@ export const severityClass = (severity: Severity) => `sev-${severity.toLowerCase
  * Builds the link to an alert's page.
  *
  * @param alert The alert.
- * @returns Its path, such as `/alerts/psa-0042`.
+ * @returns Its path, such as `/alerts/tpto-psa-00000042`.
  */
 export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()}`;
 
@@ -55,27 +54,21 @@ export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()
  */
 export const stageHref = (stage: number) => `/stages/${stage}`;
 
-export const KIND_LABEL: Record<Alert['history'][number]['kind'], string> = {
-  PUBLISHED: 'Published',
-  UPDATED: 'Updated',
-  CLOSED: 'Resolved',
-};
-
 export const CHANNEL_LABEL: Record<Channel, string> = {
   WEBSITE: 'Posted on the website',
+  HOMEPAGE: 'On the homepage banner',
   APP: 'Shown in the app',
   PUSH: 'Phone notification',
   EMAIL: 'Sent by email',
 };
 
 /**
- * Lists every channel an alert's updates went out on.
+ * Names an alert: its title, or its incident's description when it has none.
  *
  * @param alert The alert.
- * @returns The channels, in the order website, app, push, email.
+ * @returns The name to show.
  */
-export const alertChannels = (alert: Alert): Channel[] =>
-  CHANNELS.filter((channel) => alert.history.some((step) => step.channels.includes(channel)));
+export const alertTitle = (alert: Alert) => alert.title ?? alert.incident.description;
 
 /**
  * Describes which stages an alert covers.
@@ -84,26 +77,25 @@ export const alertChannels = (alert: Alert): Channel[] =>
  * @returns "All stages", "Stage 4" or "Stages 3, 4", with stages in number order.
  */
 export function where(alert: Alert): string {
-  if (alert.scope === 'GLOBAL' || alert.stages.length === 0) return 'All stages';
+  if (stageCount > 0 && alert.stages.length >= stageCount) return 'All stages';
   const numbers = alert.stages.map((s) => s.number).sort((a, b) => a - b);
   return `${numbers.length === 1 ? 'Stage' : 'Stages'} ${numbers.join(', ')}`;
 }
 
 /**
- * Tells whether an alert applies to a stage; an all-stages alert covers every stage.
+ * Tells whether an alert applies to a stage.
  *
  * @param alert The alert.
  * @param stage The stage number.
  * @returns True when the alert covers the stage.
  */
-export const covers = (alert: Alert, stage: number) =>
-  alert.scope === 'GLOBAL' || alert.stages.some((s) => s.number === stage);
+export const covers = (alert: Alert, stage: number) => alert.stages.some((s) => s.number === stage);
 
 export interface StageView {
   number: number;
-  /** The worst open severity on the stage; OK when nothing is open */
+  /** The worst severity the stage shows; OK when it shows nothing worse */
   severity: Severity;
-  /** The most severe open alert on the stage, if any */
+  /** The alert behind that severity, if any */
   alert: Alert | undefined;
 }
 
@@ -116,22 +108,16 @@ export const stages: StageView[] = (() => {
   });
 })();
 
-export interface StageStep {
-  alert: Alert;
-  step: Alert['history'][number];
-}
-
 /**
  * Names a timeline entry, so the yearly map can link to it.
  *
- * @param entry The update and its alert.
- * @returns An element id, such as `psa-0010-1760589000000`.
+ * @param alert The alert.
+ * @returns An element id, such as `tpto-psa-00000010`.
  */
-export const stepAnchor = ({ alert, step }: StageStep) =>
-  `${alert.number.toLowerCase()}-${Date.parse(step.createdAt)}`;
+export const alertAnchor = (alert: Alert) => alert.number.toLowerCase();
 
 /**
- * Picks the alerts that covered a stage, including all-stages alerts.
+ * Picks the alerts that covered a stage.
  *
  * @param stage The stage number, or null for every alert on the trail.
  * @returns The alerts, in the archive's order, newest first.
@@ -140,22 +126,20 @@ export const stageAlerts = (stage: number | null): Alert[] =>
   stage === null ? alerts : alerts.filter((alert) => covers(alert, stage));
 
 /**
- * Lists every update of every alert that covered a stage, including all-stages alerts.
+ * Lists the alerts published for a stage in a window.
  *
  * @param stage The stage number, or null for the whole trail.
  * @param from The first day to include, as `YYYY-MM-DD`; open-ended when left out.
  * @param to The last day to include, as `YYYY-MM-DD`; open-ended when left out.
- * @returns The updates in the window, newest first, each with its alert.
+ * @returns The alerts in the window, newest first.
  */
-export const stageTimeline = (stage: number | null, from?: string, to?: string): StageStep[] =>
+export const stageTimeline = (stage: number | null, from?: string, to?: string): Alert[] =>
   stageAlerts(stage)
-    .flatMap((alert) => alert.history.map((step) => ({ alert, step })))
-    .filter(({ step }) => {
-      const day = localDay(new Date(step.createdAt));
+    .filter((alert) => {
+      const day = localDay(new Date(alert.publishedAt));
       return (!from || day >= from) && (!to || day <= to);
     })
-    .sort((a, b) => Date.parse(b.step.createdAt) - Date.parse(a.step.createdAt));
-
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
 export interface TrailSummary {
   severity: Severity | 'unknown';
@@ -187,7 +171,7 @@ export const trail: TrailSummary = (() => {
   const closedStages = stages.filter((s) => s.severity === 'CLOSED').map((s) => s.number);
   const headline = {
     CLOSED:
-      current.some((a) => a.severity.value === 'CLOSED' && a.scope === 'GLOBAL')
+      closedStages.length === stages.length
         ? 'Trail closed'
         : `${closedStages.length === 1 ? 'Stage' : 'Stages'} ${closedStages.join(', ')} closed`,
     PRECAUTION: 'Open with caution',
@@ -195,12 +179,3 @@ export const trail: TrailSummary = (() => {
   }[worst.severity.value];
   return { severity: worst.severity.value, headline, detail: counts };
 })();
-
-/**
- * Orders a PSA's history for its timeline.
- *
- * @param alert The alert.
- * @returns A copy of its history, oldest first.
- */
-export const timeline = (alert: Alert) =>
-  [...alert.history].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));

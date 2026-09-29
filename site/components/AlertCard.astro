@@ -1,5 +1,5 @@
 ---
-import { alertHref, severityClass, where, type Alert } from '../lib/alerts.ts';
+import { alertHref, alertTitle, severityClass, where, type Alert } from '../lib/alerts.ts';
 import { formatDateTime } from '../lib/status.ts';
 
 interface Props {
@@ -7,7 +7,6 @@ interface Props {
 }
 
 const { alert } = Astro.props;
-const updated = alert.updatedAt !== alert.publishedAt;
 ---
 
 <a class:list={['alert-card', severityClass(alert.severity.value)]} href={alertHref(alert)}>
@@ -15,10 +14,10 @@ const updated = alert.updatedAt !== alert.publishedAt;
     <span class:list={['sev', severityClass(alert.severity.value)]}>{alert.severity.label}</span>
     <span class="alert-where">{where(alert)}</span>
   </span>
-  <span class="alert-card-title">{alert.title ?? alert.reason ?? alert.category.label}</span>
+  <span class="alert-card-title">{alertTitle(alert)}</span>
   {alert.impact && <span class="alert-card-text">{alert.impact}</span>}
   <span class="alert-card-foot">
-    <span>{alert.category.label} · {updated ? 'Updated' : 'Published'} {formatDateTime(new Date(alert.updatedAt))}</span>
+    <span>{alert.category.label} · Published {formatDateTime(new Date(alert.publishedAt))}</span>
     <span class="alert-card-more">Details →</span>
   </span>
 </a>

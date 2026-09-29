@@ -3,13 +3,13 @@ import { z } from 'zod';
 export const SEVERITIES = ['OK', 'ADVISORY', 'PRECAUTION', 'CLOSED'] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
-/** The channels a PSA update can go out on, in the SOP's order. */
-export const CHANNELS = ['WEBSITE', 'APP', 'PUSH', 'EMAIL'] as const;
+/** The channels a PSA can go out on, in the SOP's order. */
+export const CHANNELS = ['WEBSITE', 'HOMEPAGE', 'APP', 'PUSH', 'EMAIL'] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 const severity = z.object({ value: z.enum(SEVERITIES), label: z.string() });
 
-/** The channels of an update; one this page doesn't know is dropped, not a reason to skip the PSA. */
+/** The channels of a PSA; one this page doesn't know is dropped, not a reason to skip it. */
 const channels = z
   .array(z.string())
   .default([])
@@ -20,33 +20,21 @@ const date = z.iso.datetime({ offset: true });
 const alert = z.object({
   id: z.string(),
   number: z.string(),
-  scope: z.enum(['GLOBAL', 'STAGE']),
-  status: z.enum(['OPEN', 'CLOSED']),
   severity,
   category: z.object({ label: z.string() }),
-  reason: z.string().nullish(),
+  incident: z.object({
+    id: z.string(),
+    number: z.string(),
+    description: z.string(),
+    status: z.enum(['OPEN', 'CLOSED']),
+  }),
   title: z.string().nullish(),
   impact: z.string().nullish(),
   action: z.string().nullish(),
-  link: z.url().nullish(),
-  linkLabel: z.string().nullish(),
+  links: z.array(z.object({ url: z.url(), label: z.string().nullish() })).default([]),
   stages: z.array(z.object({ number: z.number() })).default([]),
   publishedAt: date,
-  updatedAt: date,
-  closedAt: date.nullish(),
-  resolution: z.string().nullish(),
-  history: z
-    .array(
-      z.object({
-        kind: z.enum(['PUBLISHED', 'UPDATED', 'CLOSED']),
-        severity,
-        createdAt: date,
-        title: z.string().nullish(),
-        message: z.string().nullish(),
-        channels,
-      }),
-    )
-    .default([]),
+  channels,
 });
 
 export type Alert = z.infer<typeof alert>;
@@ -82,13 +70,13 @@ export function parsePage(body: unknown): { alerts: Alert[]; next: number | null
 }
 
 /**
- * Drops an alert's link unless it is `https://`, so a bad link can't become a script URL.
+ * Drops an alert's links unless they are `https://`, so a bad link can't become a script URL.
  *
  * @param item The alert.
- * @returns The alert, or a copy with `link` set to null.
+ * @returns The alert, keeping only its `https://` links.
  */
-function safeLink(item: Alert): Alert {
-  return item.link && !item.link.startsWith('https://') ? { ...item, link: null } : item;
+function safeLinks(item: Alert): Alert {
+  return { ...item, links: item.links.filter((link) => link.url.startsWith('https://')) };
 }
 
 /**
@@ -99,7 +87,7 @@ function safeLink(item: Alert): Alert {
  * @param url The public history endpoint.
  * @param options.timeoutMs How long to wait for each page.
  * @param options.maxPages The most pages to read.
- * @param options.updatedSince Read only the alerts changed at or after this instant.
+ * @param options.updatedSince Read only the alerts published at or after this instant.
  * @returns The alerts from every page read, with non-https links removed.
  */
 export async function fetchAlerts(
@@ -119,23 +107,23 @@ export async function fetchAlerts(
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { alerts: found, next } = parsePage(await res.json());
-    alerts.push(...found.map(safeLink));
+    alerts.push(...found.map(safeLinks));
     pageNumber = next;
   }
   return alerts;
 }
 
 /**
- * Gives the watermark for the next read: the newest change the archive has seen. An alert's
- * `updatedAt` moves when it is published, updated or closed, so asking for everything from
- * this instant onwards catches a closure of an old alert as well as a new one.
+ * Gives the watermark for the next read: the newest alert the archive has seen. An alert is
+ * published once and never edited, so its publication time is all a reader has to catch up
+ * on.
  *
  * @param alerts The archive.
- * @returns The newest `updatedAt`, or undefined when the archive is empty.
+ * @returns The newest `publishedAt`, or undefined when the archive is empty.
  */
-export function lastUpdatedAt(alerts: Alert[]): string | undefined {
+export function lastPublishedAt(alerts: Alert[]): string | undefined {
   return alerts.reduce<string | undefined>(
-    (newest, alert) => (!newest || alert.updatedAt > newest ? alert.updatedAt : newest),
+    (newest, alert) => (!newest || alert.publishedAt > newest ? alert.publishedAt : newest),
     undefined,
   );
 }
@@ -156,12 +144,15 @@ export function mergeAlerts(archive: Alert[], fetched: Alert[]): Alert[] {
 }
 
 /**
- * Picks the open alerts and orders them for display.
+ * Picks the alerts the trail shows now, the way the API's register does. Each stage shows
+ * the newest alert of every open incident on it, unless that alert is OK; a stage with none
+ * of those shows its newest alert when it is an OK, as the all-clear. An incident closes only
+ * through an OK alert, so the newest copy of any of its alerts gives its status.
  *
  * @param alerts Every alert.
- * @returns The open alerts, most severe first, then most recently updated.
+ * @returns The alerts still showing, most severe first, then most recently published.
  */
-export function openAlerts(alerts: Alert[]): Alert[] {
+export function currentAlerts(alerts: Alert[]): Alert[] {
   /**
    * Ranks an alert by severity.
    *
@@ -169,7 +160,23 @@ export function openAlerts(alerts: Alert[]): Alert[] {
    * @returns Its position in SEVERITIES; higher is more severe.
    */
   const rank = (a: Alert) => SEVERITIES.indexOf(a.severity.value);
-  return alerts
-    .filter((a) => a.status === 'OPEN')
-    .sort((a, b) => rank(b) - rank(a) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  const newest = [...alerts].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+  const incidentStatus = new Map<string, Alert['incident']['status']>();
+  for (const alert of newest) {
+    if (!incidentStatus.has(alert.incident.id)) incidentStatus.set(alert.incident.id, alert.incident.status);
+  }
+  const showing = new Set<Alert>();
+  for (const stage of new Set(newest.flatMap((a) => a.stages.map((s) => s.number)))) {
+    const onStage = newest.filter((alert) => alert.stages.some((s) => s.number === stage));
+    const lanes = new Map<string, Alert>();
+    for (const alert of onStage) if (!lanes.has(alert.incident.id)) lanes.set(alert.incident.id, alert);
+    const active = [...lanes.values()].filter(
+      (alert) => alert.severity.value !== 'OK' && incidentStatus.get(alert.incident.id) === 'OPEN',
+    );
+    for (const alert of active) showing.add(alert);
+    if (active.length === 0 && onStage[0]?.severity.value === 'OK') showing.add(onStage[0]);
+  }
+  return [...showing].sort(
+    (a, b) => rank(b) - rank(a) || Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
+  );
 }

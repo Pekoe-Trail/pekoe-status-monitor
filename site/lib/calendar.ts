@@ -6,14 +6,14 @@ export interface DayColour {
   /** The Sri Lanka calendar date, as `YYYY-MM-DD` */
   date: string;
   severity: Severity;
-  /** The numbers of the alerts open then, such as `PSA-0042` */
+  /** The numbers of the alerts open then, such as `TPTO-PSA-00000042` */
   alerts: string[];
 }
 
-/** How long one of an alert's severities was on the website banner */
+/** How long an alert stood on the website banner */
 interface Span {
   from: number;
-  /** When the next banner step replaced it, or the alert closed; Infinity while it stands */
+  /** When a newer alert of the same lane replaced it; Infinity while it stands */
   to: number;
   severity: Severity;
   number: string;
@@ -41,41 +41,62 @@ export function days(from: string, to: string): string[] {
 }
 
 /**
- * Works out what an alert put on the website banner, and for how long. Only steps sent to
- * the website count, because the banner keeps showing the last one sent to it: a push-only
- * or email-only step leaves the colour alone. A closing step ends the alert rather than
- * setting a colour.
+ * Works out what the alerts of one lane — one incident on one stage — put on the website
+ * banner, and for how long. Only alerts sent to the website count, because the banner keeps
+ * showing the last one sent to it: a push-only or email-only alert leaves the colour alone.
+ * An OK alert takes the stage out of the incident, so it ends the one before it without
+ * setting a colour of its own.
  *
- * @param alert The alert.
- * @returns Its banner spans, oldest first; empty when it never went to the website.
+ * @param alerts The lane's alerts.
+ * @returns The lane's banner spans, oldest first.
  */
-function spans(alert: Alert): Span[] {
-  const steps = alert.history
-    .filter((step) => step.kind !== 'CLOSED' && step.channels.includes('WEBSITE'))
-    .map((step) => ({ at: Date.parse(step.createdAt), severity: step.severity.value }))
+function spans(alerts: Alert[]): Span[] {
+  const shown = alerts
+    .filter((alert) => alert.channels.includes('WEBSITE'))
+    .map((alert) => ({
+      at: Date.parse(alert.publishedAt),
+      severity: alert.severity.value,
+      number: alert.number,
+    }))
     .sort((a, b) => a.at - b.at);
-  const closed = alert.closedAt ? Date.parse(alert.closedAt) : Infinity;
-  return steps.map(({ at, severity }, i) => ({
-    from: at,
-    to: Math.min(steps[i + 1]?.at ?? Infinity, closed),
-    severity,
-    number: alert.number,
-  }));
+  return shown
+    .map(({ at, severity, number }, i) => ({
+      from: at,
+      to: shown[i + 1]?.at ?? Infinity,
+      severity,
+      number,
+    }))
+    .filter((span) => span.severity !== 'OK');
 }
 
 /**
  * Works out a stage's colour at the end of each day of a window, as the website banner
- * showed it. A colour carries over from day to day until a banner step changes it, and a
- * resolved alert leaves the stage Open. Today is read as of now.
+ * showed it. Each incident on the stage keeps its colour from day to day until a newer alert
+ * of that incident there changes it, and an OK alert takes it off the stage. Overlapping
+ * incidents show the worst of them. Today is read as of now.
  *
- * @param alerts The alerts covering the stage, including all-stages alerts.
+ * @param alerts The alerts covering the stage.
  * @param window The days to work out, oldest first.
+ * @param stage The stage, or null for the whole trail, which shows the worst of every stage.
  * @param now The current instant, in milliseconds.
  * @returns The days that ended with an alert open, oldest first. A day with none ended Open,
  *   and a day still to come is left out.
  */
-export function stageDays(alerts: Alert[], window: string[], now: number = Date.now()): DayColour[] {
-  const all = alerts.flatMap(spans);
+export function stageDays(
+  alerts: Alert[],
+  window: string[],
+  stage: number | null,
+  now: number = Date.now(),
+): DayColour[] {
+  const lanes = new Map<string, Alert[]>();
+  for (const alert of alerts) {
+    for (const { number } of alert.stages) {
+      if (stage !== null && number !== stage) continue;
+      const key = `${number} ${alert.incident.id}`;
+      lanes.set(key, [...(lanes.get(key) ?? []), alert]);
+    }
+  }
+  const all = [...lanes.values()].flatMap(spans);
   const colours: DayColour[] = [];
   for (const date of window) {
     if (dayStart(date) > now) break;
