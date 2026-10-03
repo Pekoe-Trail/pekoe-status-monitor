@@ -41,7 +41,7 @@ trail's; `/trail` redirects to it.
 | Page | What it shows |
 |---|---|
 | `/` | The trail's colour now, its open incidents with every alert about each, and a card per stage with its illustrated map |
-| `/stages/<n>` | One stage: its colour, its open incidents with their alerts, the past year day by day, and that year's updates |
+| `/stages/<n>` | One stage: its colour, the past year day by day, and a timeline of that year's incidents, each with its lifecycle and alerts |
 | `/stages/<n>/<year>` | The same for one calendar year |
 | `/stages/overall` | The whole trail, in the same shape, reached from the **All stages** button |
 | `/alerts/<psa>` | One trail alert with its full history |
@@ -112,6 +112,18 @@ day to day until a newer alert of that incident there changes it, an OK alert ta
 the stage, and overlapping incidents show the worst of them. Days before the first alert
 in the archive show as **No records**, because nothing says what the stage was then.
 Clicking a day scrolls to the alert that set its colour.
+
+**The timeline** under it groups the stage's alerts by incident. A chart draws each incident
+as a row across the window, in the colours the banner showed, so overlapping incidents sit one
+above the other, with a dot per alert. Each incident then gets a card with its lifecycle:
+
+- **Opened** when its first alert went out, anywhere on the trail. The register opens an
+  incident before its first alert, but the public history only has the alerts.
+- **Live** while the stage shows one of its alerts, with how long so far.
+- **Closed** at the OK alert that closed it, or **Cleared here** when an OK alert took this
+  stage out of an incident still live on other stages.
+
+Its alerts follow, newest first, marking the one showing now.
 
 ## Working locally
 

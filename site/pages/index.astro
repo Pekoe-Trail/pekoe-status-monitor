@@ -1,12 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
-import AlertIncidents from '../components/AlertIncidents.astro';
+import IncidentStory from '../components/IncidentStory.astro';
 import StageGrid from '../components/StageGrid.astro';
 import StatusBoard from '../components/StatusBoard.astro';
-import { alertsUpdatedAt, hasAlerts, openIncidents, severityClass, stages, trail } from '../lib/alerts.ts';
+import { alerts, alertsUpdatedAt, hasAlerts, severityClass, stages, trail } from '../lib/alerts.ts';
+import { incidentStories } from '../lib/lifecycle.ts';
 import { formatDateTime } from '../lib/status.ts';
 
 const LEGEND = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
+const live = incidentStories(alerts, null).filter((story) => story.state === 'live');
+const now = Date.now();
 const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
 ---
 
@@ -34,14 +37,16 @@ const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(tra
               <h2 id="incidents-title">What's happening on the trail</h2>
             </div>
             <span class="zone-count">
-              {openIncidents.length} open
+              {live.length} live
             </span>
           </div>
-          {openIncidents.length > 0 ? (
-            <AlertIncidents incidents={openIncidents} />
+          {live.length > 0 ? (
+            <div class="story-stack">
+              {live.map((story) => <IncidentStory story={story} stage={null} now={now} />)}
+            </div>
           ) : (
             <div class="card">
-              <p class="empty">No open incidents. All stages are open.</p>
+              <p class="empty">No live incidents. All stages are open.</p>
             </div>
           )}
         </section>

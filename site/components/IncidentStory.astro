@@ -1,0 +1,123 @@
+---
+import ChannelPills from './ChannelPills.astro';
+import { alertAnchor, alertHref, alertTitle, current, severityClass, stagesLabel, where, type Alert } from '../lib/alerts.ts';
+import { duration, type IncidentStory } from '../lib/lifecycle.ts';
+import { formatDate, formatDateTime } from '../lib/status.ts';
+
+interface Props {
+  story: IncidentStory;
+  stage: number | null;
+  now: number;
+}
+
+const { story, stage, now } = Astro.props;
+const LABEL = { OK: 'OK', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
+const opened = Date.parse(story.openedAt);
+const ended = story.endedAt ? Date.parse(story.endedAt) : null;
+const sev = severityClass(story.severity);
+const elsewhere = story.liveOn.filter((number) => number !== stage);
+
+/**
+ * Tells whether a page shows an alert now: on a stage page, the stage's newest alert of a live
+ * incident; on the whole trail, any alert the trail shows.
+ *
+ * @param alert The alert.
+ * @returns True when it is showing now.
+ */
+const showing = (alert: Alert) =>
+  stage === null ? current.includes(alert) : story.state === 'live' && alert === story.latest;
+
+/**
+ * Names what an alert did in the incident's lifecycle.
+ *
+ * @param alert The alert.
+ * @returns "Opened" for its first alert, "Closed" for the one that closed it, "Cleared" for
+ *   another OK alert, and "Update" otherwise.
+ */
+function kind(alert: Alert): string {
+  if (alert.publishedAt === story.openedAt) return 'Opened';
+  if (alert.severity.value !== 'OK') return 'Update';
+  return story.state === 'closed' && alert.publishedAt === story.endedAt ? 'Closed' : 'Cleared';
+}
+---
+
+<article class:list={['story', sev, `is-${story.state}`]}>
+  <header class="story-head">
+    <div class="story-tags">
+      {
+        story.state === 'live' ? (
+          <span class="story-live">
+            <span class="story-live-dot" aria-hidden="true" />
+            Live · {LABEL[story.severity]}
+          </span>
+        ) : (
+          <span class:list={['story-ended', `story-ended-${story.state}`]}>
+            {story.state === 'closed' ? 'Closed' : 'Cleared here'}
+          </span>
+        )
+      }
+      <span class="tag">{story.category}</span>
+      <span class="story-number">{story.incident.number}</span>
+    </div>
+    <h4 class="story-title">{story.incident.description}</h4>
+
+    <ol class="lifecycle" aria-label="Lifecycle">
+      <li class="lifecycle-step is-done">
+        <span class="lifecycle-name">Opened</span>
+        <span class="lifecycle-when">{formatDate(new Date(opened))}</span>
+      </li>
+      <li class:list={['lifecycle-step', story.state === 'live' ? 'is-now' : 'is-done', sev]}>
+        <span class="lifecycle-name">Live</span>
+        <span class="lifecycle-when">
+          {story.state === 'live' ? `${duration(opened, now)} so far` : `for ${duration(opened, ended!)}`}
+        </span>
+      </li>
+      <li class:list={['lifecycle-step', story.state === 'live' ? 'is-next' : 'is-done']}>
+        <span class="lifecycle-name">{story.state === 'cleared' ? 'Cleared here' : 'Closed'}</span>
+        <span class="lifecycle-when">{ended ? formatDate(new Date(ended)) : 'Not yet'}</span>
+      </li>
+    </ol>
+    {
+      elsewhere.length > 0 && (
+        <p class="story-note">
+          {stage === null ? 'Live on' : story.state === 'live' ? 'Also live on' : 'Still live on'} {stagesLabel(elsewhere).toLowerCase()}
+        </p>
+      )
+    }
+  </header>
+
+  {
+    story.alerts.length === 0 ? (
+      <p class="story-empty">No alerts published about it in this window.</p>
+    ) : (
+      <ol class="story-rail">
+        {story.alerts.map((alert) => (
+          <li
+            id={alertAnchor(alert)}
+            class:list={['story-alert', severityClass(alert.severity.value), { 'is-showing': showing(alert) }]}
+          >
+            <div class="story-alert-meta">
+              <span class="story-kind">{kind(alert)}</span>
+              <time datetime={alert.publishedAt}>{formatDateTime(new Date(alert.publishedAt))}</time>
+              <span>{alert.number}</span>
+              <span>{where(alert)}</span>
+            </div>
+            <div class="story-alert-head">
+              <span class:list={['sev', 'sev-small', severityClass(alert.severity.value)]}>{alert.severity.label}</span>
+              <a class="story-alert-title" href={alertHref(alert)}>{alertTitle(alert)}</a>
+              {showing(alert) && (
+                <span class="story-showing">
+                  <span class="story-live-dot" aria-hidden="true" />
+                  Showing now
+                </span>
+              )}
+            </div>
+            {alert.impact && <p class="story-impact">{alert.impact}</p>}
+            {alert.action && <p class="story-action">{alert.action}</p>}
+            <ChannelPills channels={alert.channels} heading={false} />
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</article>

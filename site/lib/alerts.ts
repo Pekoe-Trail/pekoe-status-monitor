@@ -129,53 +129,6 @@ export const stages: StageView[] = (() => {
   });
 })();
 
-export interface IncidentView {
-  incident: Alert['incident'];
-  category: string;
-  severity: Severity;
-  stages: number[];
-  alerts: Alert[];
-  showing: Alert[];
-}
-
-export const openIncidents: IncidentView[] = (() => {
-  /**
-   * Ranks a severity.
-   *
-   * @param severity The severity.
-   * @returns Its position in SEVERITIES; higher is more severe.
-   */
-  const rank = (severity: Severity) => SEVERITIES.indexOf(severity);
-  const byIncident = new Map<string, Alert[]>();
-  for (const alert of [...alerts].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))) {
-    byIncident.set(alert.incident.id, [...(byIncident.get(alert.incident.id) ?? []), alert]);
-  }
-  return [...byIncident.values()]
-    .map((list): IncidentView => {
-      const showing = current.filter((alert) => alert.incident.id === list[0].incident.id && alert.severity.value !== 'OK');
-      const severity = showing.reduce<Severity>((worst, a) => (rank(a.severity.value) > rank(worst) ? a.severity.value : worst), 'OK');
-      return {
-        incident: list[0].incident,
-        category: list[0].category.label,
-        severity,
-        stages: [...new Set(showing.flatMap((a) => a.stages.map((s) => s.number)))].sort((a, b) => a - b),
-        alerts: list,
-        showing,
-      };
-    })
-    .filter((view) => view.showing.length > 0)
-    .sort((a, b) => rank(b.severity) - rank(a.severity) || Date.parse(b.alerts[0].publishedAt) - Date.parse(a.alerts[0].publishedAt));
-})();
-
-/**
- * Picks the open incidents a stage shows an alert for now.
- *
- * @param stage The stage number, or null for every open incident on the trail.
- * @returns The incidents, in the order of `openIncidents`.
- */
-export const incidentsOn = (stage: number | null): IncidentView[] =>
-  stage === null ? openIncidents : openIncidents.filter((view) => view.stages.includes(stage));
-
 /**
  * Describes a list of stage numbers.
  *
