@@ -8,10 +8,7 @@ export const YEAR_DAYS = 365;
 export interface YearCell {
   /** The Sri Lanka calendar date, as `YYYY-MM-DD` */
   day: string;
-  /**
-   * The stage's colour at the end of the day, as the website and app showed it; null before
-   * the first alert on record
-   */
+  /** The stage's colour at the end of the day, as the website and app showed it */
   severity: Severity | null;
   /** The numbers of the alerts open at the end of the day, such as `TPTO-PSA-00000042` */
   alerts: string[];

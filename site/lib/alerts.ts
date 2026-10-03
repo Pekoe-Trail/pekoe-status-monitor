@@ -29,10 +29,6 @@ export const alertYears: string[] = [
   ...new Set(alerts.map((alert) => localDay(new Date(alert.publishedAt)).slice(0, 4))),
 ].sort((a, b) => b.localeCompare(a));
 
-/**
- * The Sri Lanka calendar day of the first alert on record, or null when there is none. Before
- * it, the archive can't say whether a stage was open.
- */
 export const firstRecordDay: string | null = alerts.reduce<string | null>((first, alert) => {
   const day = localDay(new Date(alert.publishedAt));
   return first === null || day < first ? day : first;
@@ -117,20 +113,12 @@ export const stages: StageView[] = (() => {
 export interface IncidentView {
   incident: Alert['incident'];
   category: string;
-  /** The worst severity its showing alerts give it */
   severity: Severity;
-  /** The stages its showing alerts cover, in number order */
   stages: number[];
-  /** Every alert published about it, newest first */
   alerts: Alert[];
-  /** The alerts of it the trail shows now */
   showing: Alert[];
 }
 
-/**
- * The incidents the trail shows an alert for now, each with every alert published about it,
- * worst first, then most recently updated.
- */
 export const openIncidents: IncidentView[] = (() => {
   /**
    * Ranks a severity.

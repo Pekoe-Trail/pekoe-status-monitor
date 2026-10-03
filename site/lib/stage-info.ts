@@ -1,11 +1,7 @@
-/**
- * What thepekoetrail.org/pekoe-stages says about a stage, for its card on the Trail page.
- */
 export interface StageInfo {
   number: number;
   from: string;
   to: string;
-  /** Open shorter than 6am to 6pm, such as in a wildlife corridor */
   specialHours: boolean;
 }
 

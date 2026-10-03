@@ -342,7 +342,6 @@ h2 {
   color: var(--muted);
 }
 
-/* The link to every alert, in the trail's colour now. */
 .zone-pill {
   color: #080C06;
   text-decoration: none;
@@ -753,8 +752,6 @@ a.incident:hover .incident-title {
   background: currentColor;
   opacity: 0.55;
 }
-
-/* Severity legend, shared by the stage grid, year map and check grid */
 
 .stages-legend {
   display: flex;
@@ -1255,8 +1252,6 @@ a.incident:hover .incident-title {
   white-space: nowrap;
 }
 
-/* Alert incidents on the Trail page: one card per open incident, its alerts newest first */
-
 .incident-stack {
   display: grid;
   gap: 14px;
@@ -1270,7 +1265,6 @@ a.incident:hover .incident-title {
   border-radius: 14px;
 }
 
-/* A band of the incident's colour down its left edge. */
 .trail-incident::before {
   content: '';
   position: absolute;
@@ -1335,8 +1329,6 @@ a.incident:hover .incident-title {
   font-weight: 600;
 }
 
-/* Stage grid: a card per stage with its illustrated map, coloured by its worst alert */
-
 .grid-legend {
   margin-bottom: 14px;
 }
@@ -1382,7 +1374,6 @@ a.incident:hover .incident-title {
   box-shadow: 0 0 0 2px var(--ring), 0 4px 8px rgba(8, 12, 6, 0.05), 0 18px 40px rgba(8, 12, 6, 0.14);
 }
 
-/* A stage with an alert is ringed in its colour, so it stands out in the grid. */
 .stage-card.sev-advisory { --ring: #FBC02D; }
 .stage-card.sev-precaution { --ring: #FB862B; }
 .stage-card.sev-closed { --ring: #FF5A5A; }
@@ -1398,7 +1389,6 @@ a.incident:hover .incident-title {
   pointer-events: none;
 }
 
-/* The stage number in outlined digits, like the website's stage cards. */
 .stage-card-num {
   display: grid;
   place-items: center;
@@ -1449,7 +1439,6 @@ a.incident:hover .incident-title {
 .stage-pill.sev-precaution .stage-pill-dot,
 .stage-pill.sev-closed .stage-pill-dot { background: #080C06; }
 
-/* A closed stage's dot pulses, like the trail card's. */
 .stage-pill.sev-closed .stage-pill-dot {
   animation: blink 1.6s ease-in-out infinite;
 }
