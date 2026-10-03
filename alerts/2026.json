@@ -1,3 +1,0 @@
-[
-  {"id":"4d85a08f-4227-4827-a675-54f72e78fe4e","number":"TPTO-PSA-00000001","severity":{"value":"ADVISORY","label":"Advisory"},"category":{"label":"Weather & Landslides"},"incident":{"id":"8121816e-d891-49fd-9b28-fe235204169e","number":"TPTO-INC-00000001","description":"Inter-Monsoon Periods","status":"OPEN"},"title":"Continuous rainfall reported.","impact":"Continuous rainfall reported. Trail conditions may be wet, slippery, and challenging.","action":"Hikers are advised to proceed with caution.","links":[],"stages":[{"number":5}],"publishedAt":"2026-10-02T09:12:45.203Z","channels":["WEBSITE","APP"]}
-]
