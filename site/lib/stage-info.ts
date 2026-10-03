@@ -2,32 +2,31 @@ export interface StageInfo {
   number: number;
   from: string;
   to: string;
-  specialHours: boolean;
 }
 
 const STAGES: StageInfo[] = [
-  { number: 1, from: 'Hanthana', to: 'Galaha', specialHours: false },
-  { number: 2, from: 'Galaha', to: 'Loolkandura', specialHours: false },
-  { number: 3, from: 'Loolkandura', to: 'Tawalantanne', specialHours: false },
-  { number: 4, from: 'Tawalantanne', to: 'Pundaluoya', specialHours: false },
-  { number: 5, from: 'Pundaluoya', to: 'Watagoda', specialHours: true },
-  { number: 6, from: 'Watagoda', to: 'Kotagala', specialHours: true },
-  { number: 7, from: 'Kotagala', to: 'Norwood', specialHours: true },
-  { number: 8, from: 'Norwood', to: 'Bogawantalawa', specialHours: true },
-  { number: 9, from: 'Bogawantalawa', to: 'Dayagama', specialHours: false },
-  { number: 10, from: 'Dayagama', to: 'Horton Plains', specialHours: true },
-  { number: 11, from: 'Horton Plains', to: 'Udaweriya', specialHours: true },
-  { number: 12, from: 'Udaweriya', to: 'Haputale', specialHours: false },
-  { number: 13, from: 'Haputale', to: "St. Catherine's", specialHours: false },
-  { number: 14, from: "St. Catherine's", to: 'Makulella', specialHours: false },
-  { number: 15, from: 'Makulella', to: 'Ella', specialHours: false },
-  { number: 16, from: 'Ella', to: 'Demodara', specialHours: false },
-  { number: 17, from: 'Demodara', to: 'Hali Ela', specialHours: false },
-  { number: 18, from: 'Hali Ela', to: 'Etampitiya', specialHours: false },
-  { number: 19, from: 'Etampitiya', to: 'Loonuwatte', specialHours: false },
-  { number: 20, from: 'Loonuwatte', to: 'Udapussellawa', specialHours: false },
-  { number: 21, from: 'Udapussellawa', to: 'Kandapola', specialHours: false },
-  { number: 22, from: 'Kandapola', to: 'Pedro', specialHours: false },
+  { number: 1, from: 'Hanthana', to: 'Galaha' },
+  { number: 2, from: 'Galaha', to: 'Loolkandura' },
+  { number: 3, from: 'Loolkandura', to: 'Tawalantanne' },
+  { number: 4, from: 'Tawalantanne', to: 'Pundaluoya' },
+  { number: 5, from: 'Pundaluoya', to: 'Watagoda' },
+  { number: 6, from: 'Watagoda', to: 'Kotagala' },
+  { number: 7, from: 'Kotagala', to: 'Norwood' },
+  { number: 8, from: 'Norwood', to: 'Bogawantalawa' },
+  { number: 9, from: 'Bogawantalawa', to: 'Dayagama' },
+  { number: 10, from: 'Dayagama', to: 'Horton Plains' },
+  { number: 11, from: 'Horton Plains', to: 'Udaweriya' },
+  { number: 12, from: 'Udaweriya', to: 'Haputale' },
+  { number: 13, from: 'Haputale', to: "St. Catherine's" },
+  { number: 14, from: "St. Catherine's", to: 'Makulella' },
+  { number: 15, from: 'Makulella', to: 'Ella' },
+  { number: 16, from: 'Ella', to: 'Demodara' },
+  { number: 17, from: 'Demodara', to: 'Hali Ela' },
+  { number: 18, from: 'Hali Ela', to: 'Etampitiya' },
+  { number: 19, from: 'Etampitiya', to: 'Loonuwatte' },
+  { number: 20, from: 'Loonuwatte', to: 'Udapussellawa' },
+  { number: 21, from: 'Udapussellawa', to: 'Kandapola' },
+  { number: 22, from: 'Kandapola', to: 'Pedro' },
 ];
 
 /**

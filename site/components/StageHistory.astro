@@ -1,19 +1,12 @@
 ---
-import ChannelPills from './ChannelPills.astro';
+import IncidentLanes from './IncidentLanes.astro';
+import IncidentStory from './IncidentStory.astro';
 import YearLinks from './YearLinks.astro';
 import YearMap from './YearMap.astro';
-import {
-  alertAnchor,
-  alertHref,
-  alertTitle,
-  firstRecordDay,
-  severityClass,
-  stageAlerts,
-  stageTimeline,
-  where,
-} from '../lib/alerts.ts';
+import { alertAnchor, alerts, firstRecordDay, stageAlerts, stageTimeline } from '../lib/alerts.ts';
 import { days, stageDays } from '../lib/calendar.ts';
-import { formatDateTime } from '../lib/status.ts';
+import { incidentStories, storiesBetween } from '../lib/lifecycle.ts';
+import { addDays } from '../../scripts/lib/time.ts';
 
 interface Props {
   /** The stage number, or null for the whole trail. */
@@ -33,6 +26,12 @@ interface Props {
 const { stage, base, from, to, label, current } = Astro.props;
 const colours = stageDays(stageAlerts(stage), days(from, to), stage);
 const published = stageTimeline(stage, from, to);
+const now = Date.now();
+const stories = storiesBetween(
+  incidentStories(alerts, stage),
+  Date.parse(`${from}T00:00:00+05:30`),
+  Math.min(Date.parse(`${addDays(to, 1)}T00:00:00+05:30`), now),
+);
 const marks = published.map((alert) => ({ at: Date.parse(alert.publishedAt), anchor: alertAnchor(alert) }));
 ---
 
@@ -41,7 +40,7 @@ const marks = published.map((alert) => ({ at: Date.parse(alert.publishedAt), anc
 
 <h3 class="zone-sub">Timeline</h3>
 {
-  published.length === 0 ? (
+  stories.length === 0 ? (
     <div class="card">
       <p class="empty">
         No alerts {stage === null ? 'on the trail' : 'on this stage'}{' '}
@@ -49,25 +48,18 @@ const marks = published.map((alert) => ({ at: Date.parse(alert.publishedAt), anc
       </p>
     </div>
   ) : (
-    <ol class="timeline card">
-      {published.map((alert) => (
-        <li
-          id={alertAnchor(alert)}
-          class:list={[severityClass(alert.severity.value), { done: alert.severity.value === 'OK' }]}
-        >
-          <div class="timeline-head">
-            <span class:list={['sev', 'sev-small', severityClass(alert.severity.value)]}>{alert.severity.label}</span>
-            <time class="timeline-when" datetime={alert.publishedAt}>{formatDateTime(new Date(alert.publishedAt))}</time>
-          </div>
-          <div class="timeline-alert">
-            <a href={alertHref(alert)}>{alert.number}: {alertTitle(alert)}</a>
-            <span class="muted"> · {where(alert)}</span>
-          </div>
-          {alert.impact && <p>{alert.impact}</p>}
-          <ChannelPills channels={alert.channels} />
-        </li>
-      ))}
-    </ol>
+    <>
+      <div class="card lanes-card">
+        <div class="lanes-head">
+          <span class="lanes-title">{stories.length} {stories.length === 1 ? 'incident' : 'incidents'}</span>
+          <span class="lanes-note">One row per incident. Incidents can overlap; each dot is an alert.</span>
+        </div>
+        <IncidentLanes stories={stories} from={from} to={to} now={now} />
+      </div>
+      <div class="story-stack">
+        {stories.map((story) => <IncidentStory story={story} stage={stage} now={now} />)}
+      </div>
+    </>
   )
 }
 <p class="small muted">Times are Sri Lanka time.</p>

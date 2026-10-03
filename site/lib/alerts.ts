@@ -8,6 +8,7 @@ import {
 } from '../../scripts/lib/alerts.ts';
 import { Store } from '../../scripts/lib/store.ts';
 import { localDay } from '../../scripts/lib/time.ts';
+import { incidentStories } from './lifecycle.ts';
 
 export type { Alert, Channel, Severity };
 
@@ -97,65 +98,33 @@ export interface StageView {
   number: number;
   /** The worst severity the stage shows; OK when it shows nothing worse */
   severity: Severity;
-  /** The alert behind that severity, if any */
-  alert: Alert | undefined;
 }
+
+/**
+ * Picks the alerts a stage shows now: the newest alert there of each incident live on it.
+ * An alert that covers the stage can still be showing only on another one, once a newer alert
+ * of its incident cleared this stage.
+ *
+ * @param stage The stage number.
+ * @returns The alerts, most severe first, then most recently published.
+ */
+export const showingOn = (stage: number): Alert[] =>
+  incidentStories(alerts, stage)
+    .filter((story) => story.state === 'live')
+    .map((story) => story.latest)
+    .sort(
+      (a, b) =>
+        SEVERITIES.indexOf(b.severity.value) - SEVERITIES.indexOf(a.severity.value) ||
+        Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
+    );
 
 export const stages: StageView[] = (() => {
   const highest = Math.max(stageCount, ...current.flatMap((a) => a.stages.map((s) => s.number)));
   return Array.from({ length: highest }, (_, i) => {
     const number = i + 1;
-    const alert = current.find((a) => covers(a, number));
-    return { number, severity: alert?.severity.value ?? 'OK', alert };
+    return { number, severity: showingOn(number)[0]?.severity.value ?? 'OK' };
   });
 })();
-
-export interface IncidentView {
-  incident: Alert['incident'];
-  category: string;
-  severity: Severity;
-  stages: number[];
-  alerts: Alert[];
-  showing: Alert[];
-}
-
-export const openIncidents: IncidentView[] = (() => {
-  /**
-   * Ranks a severity.
-   *
-   * @param severity The severity.
-   * @returns Its position in SEVERITIES; higher is more severe.
-   */
-  const rank = (severity: Severity) => SEVERITIES.indexOf(severity);
-  const byIncident = new Map<string, Alert[]>();
-  for (const alert of [...alerts].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))) {
-    byIncident.set(alert.incident.id, [...(byIncident.get(alert.incident.id) ?? []), alert]);
-  }
-  return [...byIncident.values()]
-    .map((list): IncidentView => {
-      const showing = current.filter((alert) => alert.incident.id === list[0].incident.id && alert.severity.value !== 'OK');
-      const severity = showing.reduce<Severity>((worst, a) => (rank(a.severity.value) > rank(worst) ? a.severity.value : worst), 'OK');
-      return {
-        incident: list[0].incident,
-        category: list[0].category.label,
-        severity,
-        stages: [...new Set(showing.flatMap((a) => a.stages.map((s) => s.number)))].sort((a, b) => a - b),
-        alerts: list,
-        showing,
-      };
-    })
-    .filter((view) => view.showing.length > 0)
-    .sort((a, b) => rank(b.severity) - rank(a.severity) || Date.parse(b.alerts[0].publishedAt) - Date.parse(a.alerts[0].publishedAt));
-})();
-
-/**
- * Picks the open incidents a stage shows an alert for now.
- *
- * @param stage The stage number, or null for every open incident on the trail.
- * @returns The incidents, in the order of `openIncidents`.
- */
-export const incidentsOn = (stage: number | null): IncidentView[] =>
-  stage === null ? openIncidents : openIncidents.filter((view) => view.stages.includes(stage));
 
 /**
  * Describes a list of stage numbers.

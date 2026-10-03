@@ -1,0 +1,99 @@
+---
+import { alertAnchor, alertTitle, severityClass } from '../lib/alerts.ts';
+import { days } from '../lib/calendar.ts';
+import type { IncidentStory } from '../lib/lifecycle.ts';
+import { formatDateTime } from '../lib/status.ts';
+import { addDays } from '../../scripts/lib/time.ts';
+
+interface Props {
+  stories: IncidentStory[];
+  from: string;
+  to: string;
+  now: number;
+}
+
+const { stories, from, to, now } = Astro.props;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const W = 720;
+const LANE = 42;
+const BAR = 10;
+const AXIS = 22;
+const start = Date.parse(`${from}T00:00:00+05:30`);
+const end = Math.min(Date.parse(`${addDays(to, 1)}T00:00:00+05:30`), now);
+
+/**
+ * Places an instant on the chart.
+ *
+ * @param t The instant, in milliseconds.
+ * @returns Its x position, clamped to the window.
+ */
+const x = (t: number) => (Math.min(Math.max(t, start), end) - start) / (end - start) * W;
+
+const lanes = [...stories].sort((a, b) => Date.parse(a.openedAt) - Date.parse(b.openedAt));
+const height = lanes.length * LANE + AXIS;
+const months = days(from, to)
+  .filter((day) => day.endsWith('-01'))
+  .map((day) => ({ x: x(Date.parse(`${day}T00:00:00+05:30`)), label: MONTHS[Number(day.slice(5, 7)) - 1] }));
+const STATE = { live: 'Live', cleared: 'Cleared here', closed: 'Closed' } as const;
+---
+
+<div class="lanes-scroll">
+  <svg
+    class="lanes"
+    viewBox={`0 0 ${W} ${height}`}
+    role="img"
+    aria-label={`${lanes.length} ${lanes.length === 1 ? 'incident' : 'incidents'} over this window: ${lanes.map((s) => `${s.incident.description}, ${STATE[s.state].toLowerCase()}`).join('; ')}`}
+  >
+    {months.map((m) => (
+      <g class="lanes-month">
+        <line x1={m.x} x2={m.x} y1="0" y2={height - AXIS + 4} />
+        <text x={m.x + 3} y={height - 6}>{m.label}</text>
+      </g>
+    ))}
+    {lanes.map((story, i) => {
+      const y = i * LANE;
+      const bar = y + 20;
+      const open = story.spans.at(-1)?.to === Infinity && story.state === 'live';
+      const times = [...story.spans.flatMap((span) => [span.from, span.to]), ...story.alerts.map((alert) => Date.parse(alert.publishedAt))];
+      const first = x(Math.min(...times));
+      const last = x(Math.max(...times));
+      const right = first + last > W;
+      return (
+        <g class:list={['lane', `is-${story.state}`]}>
+          <text class="lane-label" x={right ? last : first} y={y + 13} text-anchor={right ? 'end' : 'start'}>
+            <tspan class="lane-number">{story.incident.number}</tspan>
+            <tspan dx="8">{story.incident.description}</tspan>
+            <tspan dx="8" class:list={['lane-state', `lane-state-${story.state}`]}>{STATE[story.state]}</tspan>
+          </text>
+          <rect class="lane-track" x="0" y={bar} width={W} height={BAR} rx={BAR / 2} />
+          {story.spans
+            .filter((span) => span.from < end && span.to > start)
+            .map((span) => (
+              <rect
+                class:list={['lane-seg', severityClass(span.severity)]}
+                x={x(span.from)}
+                y={bar}
+                width={Math.max(x(span.to) - x(span.from), 3)}
+                height={BAR}
+                rx={BAR / 2}
+              />
+            ))}
+          {open && <circle class:list={['lane-live', severityClass(story.severity)]} cx={x(end)} cy={bar + BAR / 2} r="7" />}
+          {story.alerts
+            .filter((alert) => Date.parse(alert.publishedAt) >= start && Date.parse(alert.publishedAt) <= end)
+            .map((alert) => (
+              <a href={`#${alertAnchor(alert)}`}>
+                <title>{`${alert.number} · ${alert.severity.label} · ${alertTitle(alert)} · ${formatDateTime(new Date(alert.publishedAt))}`}</title>
+                <circle
+                  class:list={['lane-mark', severityClass(alert.severity.value)]}
+                  cx={x(Date.parse(alert.publishedAt))}
+                  cy={bar + BAR / 2}
+                  r="5"
+                />
+              </a>
+            ))}
+        </g>
+      );
+    })}
+  </svg>
+</div>

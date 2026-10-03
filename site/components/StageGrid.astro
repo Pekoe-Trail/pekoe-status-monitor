@@ -1,5 +1,5 @@
 ---
-import { alertTitle, severityClass, stageHref, stages } from '../lib/alerts.ts';
+import { severityClass, stageHref, stages } from '../lib/alerts.ts';
 import { stageInfo, stageMap } from '../lib/stage-info.ts';
 
 const LABEL = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
@@ -42,10 +42,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
                     `Stage ${stage.number}`
                   )}
                 </span>
-                {stage.alert && stage.severity !== 'OK' && (
-                  <span class="stage-card-alert">{alertTitle(stage.alert)}</span>
-                )}
-                {info?.specialHours && <span class="stage-card-note">Special trail hours</span>}
               </span>
             </a>
           </li>
