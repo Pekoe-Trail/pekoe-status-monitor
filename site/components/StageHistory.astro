@@ -6,6 +6,7 @@ import {
   alertAnchor,
   alertHref,
   alertTitle,
+  firstRecordDay,
   severityClass,
   stageAlerts,
   stageTimeline,
@@ -36,7 +37,7 @@ const marks = published.map((alert) => ({ at: Date.parse(alert.publishedAt), anc
 ---
 
 <YearLinks base={base} current={current} />
-<YearMap colours={colours} from={from} to={to} label={label} marks={marks} />
+<YearMap colours={colours} from={from} to={to} label={label} marks={marks} since={firstRecordDay} />
 
 <h3 class="zone-sub">Timeline</h3>
 {

@@ -41,7 +41,7 @@ trail's; `/trail` redirects to it.
 | Page | What it shows |
 |---|---|
 | `/` | The trail's colour now, its open incidents with every alert about each, and a card per stage with its illustrated map |
-| `/stages/<n>` | One stage: its colour, active alerts, the past year day by day, and that year's updates |
+| `/stages/<n>` | One stage: its colour, its open incidents with their alerts, the past year day by day, and that year's updates |
 | `/stages/<n>/<year>` | The same for one calendar year |
 | `/stages/overall` | The whole trail, in the same shape, reached from the **All stages** button |
 | `/alerts/<psa>` | One trail alert with its full history |
@@ -107,8 +107,9 @@ landslide during a cyclone is its own incident, and clearing one leaves the othe
 that day, as the website banner showed it. Only alerts sent to the website count, so a
 push-only reminder doesn't repaint the map. Each incident on the stage keeps its colour from
 day to day until a newer alert of that incident there changes it, an OK alert takes it off
-the stage, and overlapping incidents show the worst of them. Clicking a day scrolls to the
-alert that set its colour.
+the stage, and overlapping incidents show the worst of them. Days before the first alert
+in the archive show as **No records**, because nothing says what the stage was then.
+Clicking a day scrolls to the alert that set its colour.
 
 ## Working locally
 

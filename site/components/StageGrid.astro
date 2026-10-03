@@ -1,6 +1,6 @@
 ---
 import { alertTitle, severityClass, stageHref, stages } from '../lib/alerts.ts';
-import { shortDuration, stageInfo, stageMap } from '../lib/stage-info.ts';
+import { stageInfo, stageMap } from '../lib/stage-info.ts';
 
 const LABEL = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
 /**
@@ -32,10 +32,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
                 <img src={stageMap(stage.number)} width="480" height="501" alt="" loading="lazy" decoding="async" />
               </span>
               <span class="stage-card-body">
-                <span class="stage-card-eyebrow">
-                  Stage {stage.number}
-                  {info && <span class:list={['stage-diff', `diff-${info.difficulty.toLowerCase()}`]}>{info.difficulty}</span>}
-                </span>
+                <span class="stage-card-eyebrow">Stage {stage.number}</span>
                 <span class="stage-card-name">
                   {info ? (
                     <>
@@ -47,18 +44,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
                 </span>
                 {stage.alert && stage.severity !== 'OK' && (
                   <span class="stage-card-alert">{alertTitle(stage.alert)}</span>
-                )}
-                {info && (
-                  <span class="stage-card-facts">
-                    <span title={`${info.miles} mi`}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4" /></svg>
-                      {info.km} km
-                    </span>
-                    <span title={info.duration}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-                      {shortDuration(info.duration)}
-                    </span>
-                  </span>
                 )}
                 {info?.specialHours && <span class="stage-card-note">Special trail hours</span>}
               </span>

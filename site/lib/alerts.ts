@@ -29,6 +29,11 @@ export const alertYears: string[] = [
   ...new Set(alerts.map((alert) => localDay(new Date(alert.publishedAt)).slice(0, 4))),
 ].sort((a, b) => b.localeCompare(a));
 
+export const firstRecordDay: string | null = alerts.reduce<string | null>((first, alert) => {
+  const day = localDay(new Date(alert.publishedAt));
+  return first === null || day < first ? day : first;
+}, null);
+
 /**
  * Names the CSS class for a severity. The colours live in the stylesheet, because the
  * Content-Security-Policy forbids inline styles.
@@ -108,20 +113,12 @@ export const stages: StageView[] = (() => {
 export interface IncidentView {
   incident: Alert['incident'];
   category: string;
-  /** The worst severity its showing alerts give it */
   severity: Severity;
-  /** The stages its showing alerts cover, in number order */
   stages: number[];
-  /** Every alert published about it, newest first */
   alerts: Alert[];
-  /** The alerts of it the trail shows now */
   showing: Alert[];
 }
 
-/**
- * The incidents the trail shows an alert for now, each with every alert published about it,
- * worst first, then most recently updated.
- */
 export const openIncidents: IncidentView[] = (() => {
   /**
    * Ranks a severity.
@@ -150,6 +147,15 @@ export const openIncidents: IncidentView[] = (() => {
     .filter((view) => view.showing.length > 0)
     .sort((a, b) => rank(b.severity) - rank(a.severity) || Date.parse(b.alerts[0].publishedAt) - Date.parse(a.alerts[0].publishedAt));
 })();
+
+/**
+ * Picks the open incidents a stage shows an alert for now.
+ *
+ * @param stage The stage number, or null for every open incident on the trail.
+ * @returns The incidents, in the order of `openIncidents`.
+ */
+export const incidentsOn = (stage: number | null): IncidentView[] =>
+  stage === null ? openIncidents : openIncidents.filter((view) => view.stages.includes(stage));
 
 /**
  * Describes a list of stage numbers.

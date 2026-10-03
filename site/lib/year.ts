@@ -9,7 +9,7 @@ export interface YearCell {
   /** The Sri Lanka calendar date, as `YYYY-MM-DD` */
   day: string;
   /** The stage's colour at the end of the day, as the website and app showed it */
-  severity: Severity;
+  severity: Severity | null;
   /** The numbers of the alerts open at the end of the day, such as `TPTO-PSA-00000042` */
   alerts: string[];
   /** The timeline entry that set the day's colour: the last update by the end of the day */
@@ -35,13 +35,16 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 /**
  * Lays out a stretch of a stage's calendar as weeks of days, like a contribution graph. Each
  * day shows the stage's colour at its end, which carries over until a website update changes
- * it; a day left out of `colours` ended Open, with no alert open.
+ * it; a day left out of `colours` ended Open, with no alert open. A day before `since` has no
+ * records, so it has no colour.
  *
  * @param colours The stage's days that ended with an alert open.
  * @param from The first day to show, as `YYYY-MM-DD`.
  * @param to The last day to show, as `YYYY-MM-DD`.
  * @param marks The stage's timeline entries, in any order, for each day to link to the last
  *   one made by its end.
+ * @param since The first day with records, as `YYYY-MM-DD`; null when there are none at all.
+ *   Left out, every day has records.
  * @returns The weeks, oldest first, each Sunday to Saturday. The last week stops at `to`.
  */
 export function yearWeeks(
@@ -49,6 +52,7 @@ export function yearWeeks(
   from: string,
   to: string,
   marks: YearMark[] = [],
+  since?: string | null,
 ): YearWeek[] {
   const byDate = new Map(colours.map((d) => [d.date, d]));
   const sorted = [...marks].sort((a, b) => a.at - b.at);
@@ -63,7 +67,8 @@ export function yearWeeks(
       const end = Date.parse(`${addDays(day, 1)}T00:00:00+05:30`);
       while (next < sorted.length && sorted[next].at < end) anchor = sorted[next++].anchor;
       const found = byDate.get(day);
-      return { day, severity: found?.severity ?? 'OK', alerts: found?.alerts ?? [], anchor };
+      const recorded = since !== null && (since === undefined || day >= since);
+      return { day, severity: recorded ? (found?.severity ?? 'OK') : null, alerts: found?.alerts ?? [], anchor };
     }),
   ];
   const weeks: YearWeek[] = [];

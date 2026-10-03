@@ -342,7 +342,6 @@ h2 {
   color: var(--muted);
 }
 
-/* The link to every alert, in the trail's colour now. */
 .zone-pill {
   color: #080C06;
   text-decoration: none;
@@ -754,8 +753,6 @@ a.incident:hover .incident-title {
   opacity: 0.55;
 }
 
-/* Severity legend, shared by the stage grid, year map and check grid */
-
 .stages-legend {
   display: flex;
   flex-wrap: wrap;
@@ -845,6 +842,11 @@ a.incident:hover .incident-title {
 .year-grid .sev-advisory { background: #FBC02D; }
 .year-grid .sev-precaution { background: #FB862B; }
 .year-grid .sev-closed { background: #FF5A5A; }
+.year-grid .sev-none,
+.swatch.sev-none { background: var(--none); opacity: 0.45; }
+
+:root[data-theme='dark'] .year-grid .sev-none,
+:root[data-theme='dark'] .swatch.sev-none { opacity: 0.75; }
 
 .year-foot {
   display: flex;
@@ -890,42 +892,12 @@ a.incident:hover .incident-title {
   font-size: 0.85rem;
 }
 
-/* Alert cards */
+/* Alert page */
 
-.alert-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.alert-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-top: 5px solid var(--none);
-  border-radius: var(--radius);
-  color: var(--text);
-  text-decoration: none;
-  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.alert-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 4px rgba(8, 12, 6, 0.04), 0 10px 26px rgba(8, 12, 6, 0.1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .alert-card { transition: none; }
-  .alert-card:hover { transform: none; }
-}
-
-.alert-card.sev-ok, .alert-hero.sev-ok { border-top-color: #A3A437; }
-.alert-card.sev-advisory, .alert-hero.sev-advisory { border-top-color: #FBC02D; }
-.alert-card.sev-precaution, .alert-hero.sev-precaution { border-top-color: #FB862B; }
-.alert-card.sev-closed, .alert-hero.sev-closed { border-top-color: #FF5A5A; }
+.alert-hero.sev-ok { border-top-color: #A3A437; }
+.alert-hero.sev-advisory { border-top-color: #FBC02D; }
+.alert-hero.sev-precaution { border-top-color: #FB862B; }
+.alert-hero.sev-closed { border-top-color: #FF5A5A; }
 .alert-hero.done { border-top-color: var(--none); }
 
 .alert-card-top {
@@ -940,45 +912,6 @@ a.incident:hover .incident-title {
   font-size: 0.8rem;
   font-weight: 600;
 }
-
-.alert-card-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.alert-card-text {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.alert-card-foot {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 12px;
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.alert-card-more {
-  color: var(--brand-strong);
-  font-weight: 650;
-}
-
-.alert-card:hover .alert-card-more {
-  text-decoration: underline;
-}
-
-/* Alert page */
 
 .alert-hero {
   margin-bottom: 16px;
@@ -1319,8 +1252,6 @@ a.incident:hover .incident-title {
   white-space: nowrap;
 }
 
-/* Alert incidents on the Trail page: one card per open incident, its alerts newest first */
-
 .incident-stack {
   display: grid;
   gap: 14px;
@@ -1334,7 +1265,6 @@ a.incident:hover .incident-title {
   border-radius: 14px;
 }
 
-/* A band of the incident's colour down its left edge. */
 .trail-incident::before {
   content: '';
   position: absolute;
@@ -1399,8 +1329,6 @@ a.incident:hover .incident-title {
   font-weight: 600;
 }
 
-/* Stage grid: a card per stage with its illustrated map, coloured by its worst alert */
-
 .grid-legend {
   margin-bottom: 14px;
 }
@@ -1435,13 +1363,17 @@ a.incident:hover .incident-title {
   --paper: #33492A;
 }
 
+:root[data-theme='dark'] .stage-card-num {
+  background: rgba(16, 25, 12, 0.6);
+  -webkit-text-stroke-color: #E3E7DD;
+}
+
 .stage-card:hover {
   transform: translateY(-4px);
   border-color: var(--muted);
   box-shadow: 0 0 0 2px var(--ring), 0 4px 8px rgba(8, 12, 6, 0.05), 0 18px 40px rgba(8, 12, 6, 0.14);
 }
 
-/* A stage with an alert is ringed in its colour, so it stands out in the grid. */
 .stage-card.sev-advisory { --ring: #FBC02D; }
 .stage-card.sev-precaution { --ring: #FB862B; }
 .stage-card.sev-closed { --ring: #FF5A5A; }
@@ -1457,7 +1389,6 @@ a.incident:hover .incident-title {
   pointer-events: none;
 }
 
-/* The stage number in outlined digits, like the website's stage cards. */
 .stage-card-num {
   display: grid;
   place-items: center;
@@ -1498,15 +1429,16 @@ a.incident:hover .incident-title {
   background: #A3A437;
 }
 
-.stage-pill.sev-advisory, .stage-pill.sev-precaution, .stage-pill.sev-closed { color: #080C06; }
+.stage-pill.sev-ok, .stage-pill.sev-advisory, .stage-pill.sev-precaution, .stage-pill.sev-closed { color: #080C06; }
+.stage-pill.sev-ok { background: #A3A437; }
 .stage-pill.sev-advisory { background: #FBC02D; }
 .stage-pill.sev-precaution { background: #FB862B; }
 .stage-pill.sev-closed { background: #FF5A5A; }
+.stage-pill.sev-ok .stage-pill-dot,
 .stage-pill.sev-advisory .stage-pill-dot,
 .stage-pill.sev-precaution .stage-pill-dot,
 .stage-pill.sev-closed .stage-pill-dot { background: #080C06; }
 
-/* A closed stage's dot pulses, like the trail card's. */
 .stage-pill.sev-closed .stage-pill-dot {
   animation: blink 1.6s ease-in-out infinite;
 }
@@ -1548,10 +1480,6 @@ a.incident:hover .incident-title {
 }
 
 .stage-card-eyebrow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   color: var(--brand);
   font-size: 0.7rem;
   font-weight: 700;
@@ -1585,51 +1513,8 @@ a.incident:hover .incident-title {
   line-height: 1.35;
 }
 
-.stage-card-facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin-top: auto;
-  padding-top: 6px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.stage-card-facts > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.stage-card-facts svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* Difficulty as a quiet tag, darker the harder the stage. */
-.stage-diff {
-  padding: 1px 8px;
-  letter-spacing: 0;
-  text-transform: none;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  font-size: 0.74rem;
-  font-weight: 650;
-}
-
-.stage-diff.diff-easy { color: var(--up); }
-.stage-diff.diff-moderate { color: var(--brand); }
-.stage-diff.diff-difficult,
-.stage-diff.diff-hard { color: var(--text); border-color: var(--muted); }
-
 .stage-card-note {
+  margin-top: auto;
   color: var(--maintenance);
   font-size: 0.76rem;
   font-weight: 650;
