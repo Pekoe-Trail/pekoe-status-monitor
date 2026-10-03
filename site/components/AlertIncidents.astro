@@ -1,0 +1,48 @@
+---
+import { alertHref, alertTitle, current, openIncidents, severityClass, stagesLabel, where } from '../lib/alerts.ts';
+import { formatDateTime } from '../lib/status.ts';
+---
+
+<div class="incident-stack">
+  {
+    openIncidents.map((view) => {
+      const sev = severityClass(view.severity);
+      return (
+        <article class:list={['trail-incident', sev]}>
+          <header class="trail-incident-head">
+            <div class="trail-incident-tags">
+              <span class:list={['sev', sev]}>{view.showing[0].severity.label}</span>
+              <span class="tag">{view.category}</span>
+              <span class="alert-where">{stagesLabel(view.stages)}</span>
+            </div>
+            <h3 class="trail-incident-title">{view.incident.description}</h3>
+            <p class="trail-incident-meta">
+              {view.incident.number} · Open · {view.alerts.length}{' '}
+              {view.alerts.length === 1 ? 'alert' : 'alerts'} · Last update{' '}
+              {formatDateTime(new Date(view.alerts[0].publishedAt))}
+            </p>
+          </header>
+          <ol class="timeline trail-incident-alerts">
+            {view.alerts.map((alert) => {
+              const showing = current.includes(alert);
+              return (
+                <li class:list={[severityClass(alert.severity.value), { replaced: !showing }]}>
+                  <div class="timeline-head">
+                    <span class:list={['sev', 'sev-small', severityClass(alert.severity.value)]}>{alert.severity.label}</span>
+                    <a class="timeline-kind" href={alertHref(alert)}>{alertTitle(alert)}</a>
+                    <span class="timeline-when">{formatDateTime(new Date(alert.publishedAt))}</span>
+                  </div>
+                  {alert.impact && <p>{alert.impact}</p>}
+                  {alert.action && <p class="trail-incident-action">{alert.action}</p>}
+                  <p class="small muted">
+                    {alert.number} · {where(alert)} · {showing ? 'Showing now' : 'Replaced'}
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
+        </article>
+      );
+    })
+  }
+</div>
