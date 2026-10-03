@@ -38,7 +38,7 @@ const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(tra
             </span>
           </div>
           {openIncidents.length > 0 ? (
-            <AlertIncidents />
+            <AlertIncidents incidents={openIncidents} />
           ) : (
             <div class="card">
               <p class="empty">No open incidents. All stages are open.</p>

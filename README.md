@@ -41,7 +41,7 @@ trail's; `/trail` redirects to it.
 | Page | What it shows |
 |---|---|
 | `/` | The trail's colour now, its open incidents with every alert about each, and a card per stage with its illustrated map |
-| `/stages/<n>` | One stage: its colour, active alerts, the past year day by day, and that year's updates |
+| `/stages/<n>` | One stage: its colour, its open incidents with their alerts, the past year day by day, and that year's updates |
 | `/stages/<n>/<year>` | The same for one calendar year |
 | `/stages/overall` | The whole trail, in the same shape, reached from the **All stages** button |
 | `/alerts/<psa>` | One trail alert with its full history |

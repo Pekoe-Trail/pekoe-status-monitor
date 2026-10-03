@@ -152,6 +152,15 @@ export const openIncidents: IncidentView[] = (() => {
 })();
 
 /**
+ * Picks the open incidents a stage shows an alert for now.
+ *
+ * @param stage The stage number, or null for every open incident on the trail.
+ * @returns The incidents, in the order of `openIncidents`.
+ */
+export const incidentsOn = (stage: number | null): IncidentView[] =>
+  stage === null ? openIncidents : openIncidents.filter((view) => view.stages.includes(stage));
+
+/**
  * Describes a list of stage numbers.
  *
  * @param numbers The stage numbers, in order.

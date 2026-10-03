@@ -1,11 +1,18 @@
 ---
-import { alertHref, alertTitle, current, openIncidents, severityClass, stagesLabel, where } from '../lib/alerts.ts';
+import { alertHref, alertTitle, current, severityClass, stagesLabel, where, type IncidentView } from '../lib/alerts.ts';
 import { formatDateTime } from '../lib/status.ts';
+
+interface Props {
+  /** The incidents to list, each with its alerts. */
+  incidents: IncidentView[];
+}
+
+const { incidents } = Astro.props;
 ---
 
 <div class="incident-stack">
   {
-    openIncidents.map((view) => {
+    incidents.map((view) => {
       const sev = severityClass(view.severity);
       return (
         <article class:list={['trail-incident', sev]}>

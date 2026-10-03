@@ -890,42 +890,12 @@ a.incident:hover .incident-title {
   font-size: 0.85rem;
 }
 
-/* Alert cards */
+/* Alert page */
 
-.alert-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.alert-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-top: 5px solid var(--none);
-  border-radius: var(--radius);
-  color: var(--text);
-  text-decoration: none;
-  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.alert-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 4px rgba(8, 12, 6, 0.04), 0 10px 26px rgba(8, 12, 6, 0.1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .alert-card { transition: none; }
-  .alert-card:hover { transform: none; }
-}
-
-.alert-card.sev-ok, .alert-hero.sev-ok { border-top-color: #A3A437; }
-.alert-card.sev-advisory, .alert-hero.sev-advisory { border-top-color: #FBC02D; }
-.alert-card.sev-precaution, .alert-hero.sev-precaution { border-top-color: #FB862B; }
-.alert-card.sev-closed, .alert-hero.sev-closed { border-top-color: #FF5A5A; }
+.alert-hero.sev-ok { border-top-color: #A3A437; }
+.alert-hero.sev-advisory { border-top-color: #FBC02D; }
+.alert-hero.sev-precaution { border-top-color: #FB862B; }
+.alert-hero.sev-closed { border-top-color: #FF5A5A; }
 .alert-hero.done { border-top-color: var(--none); }
 
 .alert-card-top {
@@ -940,45 +910,6 @@ a.incident:hover .incident-title {
   font-size: 0.8rem;
   font-weight: 600;
 }
-
-.alert-card-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.alert-card-text {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.alert-card-foot {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 12px;
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.alert-card-more {
-  color: var(--brand-strong);
-  font-weight: 650;
-}
-
-.alert-card:hover .alert-card-more {
-  text-decoration: underline;
-}
-
-/* Alert page */
 
 .alert-hero {
   margin-bottom: 16px;

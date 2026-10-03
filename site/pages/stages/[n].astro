@@ -1,8 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
-import AlertCard from '../../components/AlertCard.astro';
+import AlertIncidents from '../../components/AlertIncidents.astro';
 import StageHistory from '../../components/StageHistory.astro';
-import { covers, current, severityClass, stages, trail, type StageView } from '../../lib/alerts.ts';
+import { covers, current, incidentsOn, severityClass, stages, trail, type StageView } from '../../lib/alerts.ts';
 import { YEAR_DAYS } from '../../lib/year.ts';
 import { addDays, localDay } from '../../../scripts/lib/time.ts';
 
@@ -29,6 +29,7 @@ const number = stage?.number ?? null;
 const name = stage ? `Stage ${stage.number}` : 'The whole trail';
 const base = stage ? `/stages/${stage.number}` : '/stages/overall';
 const open = stage ? current.filter((alert) => covers(alert, stage.number)) : current;
+const incidents = incidentsOn(number);
 const severity = stage ? severityClass(stage.severity) : trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
 const headline = stage ? LABEL[stage.severity] : trail.headline;
 const to = localDay(new Date());
@@ -55,12 +56,10 @@ const from = addDays(to, 1 - YEAR_DAYS);
 
   <section class="zone">
     {
-      open.length > 0 && (
+      incidents.length > 0 && (
         <>
-          <h3 class="zone-sub">Active now</h3>
-          <div class="alert-grid">
-            {open.map((alert) => <AlertCard alert={alert} />)}
-          </div>
+          <h3 class="zone-sub">Alert incidents</h3>
+          <AlertIncidents incidents={incidents} />
         </>
       )
     }
