@@ -101,7 +101,9 @@ Which alerts a stage shows now is worked out here, the way the register does it,
 taken from the API's `current` flag, which goes stale once an alert is saved. A stage shows
 the newest alert of each open incident on it, unless that alert is OK. When nothing is open
 there, it shows its newest alert if that is an OK, as the all-clear. Incidents may overlap: a
-landslide during a cyclone is its own incident, and clearing one leaves the other.
+landslide during a cyclone is its own incident, and clearing one leaves the other. This is
+decided stage by stage: an alert covering stages 5 and 6 still shows on stage 6 after a newer
+OK alert of its incident cleared stage 5, but no longer on stage 5.
 
 **The yearly map** on a stage page colours each day with the stage's colour at the end of
 that day, as the website banner showed it. Only alerts sent to the website count, so a

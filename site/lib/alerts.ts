@@ -8,6 +8,7 @@ import {
 } from '../../scripts/lib/alerts.ts';
 import { Store } from '../../scripts/lib/store.ts';
 import { localDay } from '../../scripts/lib/time.ts';
+import { incidentStories } from './lifecycle.ts';
 
 export type { Alert, Channel, Severity };
 
@@ -101,11 +102,29 @@ export interface StageView {
   alert: Alert | undefined;
 }
 
+/**
+ * Picks the alerts a stage shows now: the newest alert there of each incident live on it.
+ * An alert that covers the stage can still be showing only on another one, once a newer alert
+ * of its incident cleared this stage.
+ *
+ * @param stage The stage number.
+ * @returns The alerts, most severe first, then most recently published.
+ */
+export const showingOn = (stage: number): Alert[] =>
+  incidentStories(alerts, stage)
+    .filter((story) => story.state === 'live')
+    .map((story) => story.latest)
+    .sort(
+      (a, b) =>
+        SEVERITIES.indexOf(b.severity.value) - SEVERITIES.indexOf(a.severity.value) ||
+        Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
+    );
+
 export const stages: StageView[] = (() => {
   const highest = Math.max(stageCount, ...current.flatMap((a) => a.stages.map((s) => s.number)));
   return Array.from({ length: highest }, (_, i) => {
     const number = i + 1;
-    const alert = current.find((a) => covers(a, number));
+    const alert = showingOn(number)[0];
     return { number, severity: alert?.severity.value ?? 'OK', alert };
   });
 })();
