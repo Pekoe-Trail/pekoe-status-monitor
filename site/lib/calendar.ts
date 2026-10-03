@@ -11,7 +11,7 @@ export interface DayColour {
 }
 
 /** How long an alert stood on the website banner */
-interface Span {
+export interface Span {
   from: number;
   /** When a newer alert of the same lane replaced it; Infinity while it stands */
   to: number;
@@ -50,7 +50,7 @@ export function days(from: string, to: string): string[] {
  * @param alerts The lane's alerts.
  * @returns The lane's banner spans, oldest first.
  */
-function spans(alerts: Alert[]): Span[] {
+export function spans(alerts: Alert[]): Span[] {
   const shown = alerts
     .filter((alert) => alert.channels.includes('WEBSITE'))
     .map((alert) => ({
