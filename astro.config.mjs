@@ -12,6 +12,7 @@ export default defineConfig({
   },
   devToolbar: { enabled: false },
   redirects: {
-    '/alerts': '/trail',
+    '/alerts': '/',
+    '/trail': '/',
   },
 });

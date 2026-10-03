@@ -76,11 +76,8 @@ export const alertTitle = (alert: Alert) => alert.title ?? alert.incident.descri
  * @param alert The alert.
  * @returns "All stages", "Stage 4" or "Stages 3, 4", with stages in number order.
  */
-export function where(alert: Alert): string {
-  if (stageCount > 0 && alert.stages.length >= stageCount) return 'All stages';
-  const numbers = alert.stages.map((s) => s.number).sort((a, b) => a - b);
-  return `${numbers.length === 1 ? 'Stage' : 'Stages'} ${numbers.join(', ')}`;
-}
+export const where = (alert: Alert): string =>
+  stagesLabel(alert.stages.map((s) => s.number).sort((a, b) => a - b));
 
 /**
  * Tells whether an alert applies to a stage.
@@ -107,6 +104,63 @@ export const stages: StageView[] = (() => {
     return { number, severity: alert?.severity.value ?? 'OK', alert };
   });
 })();
+
+export interface IncidentView {
+  incident: Alert['incident'];
+  category: string;
+  /** The worst severity its showing alerts give it */
+  severity: Severity;
+  /** The stages its showing alerts cover, in number order */
+  stages: number[];
+  /** Every alert published about it, newest first */
+  alerts: Alert[];
+  /** The alerts of it the trail shows now */
+  showing: Alert[];
+}
+
+/**
+ * The incidents the trail shows an alert for now, each with every alert published about it,
+ * worst first, then most recently updated.
+ */
+export const openIncidents: IncidentView[] = (() => {
+  /**
+   * Ranks a severity.
+   *
+   * @param severity The severity.
+   * @returns Its position in SEVERITIES; higher is more severe.
+   */
+  const rank = (severity: Severity) => SEVERITIES.indexOf(severity);
+  const byIncident = new Map<string, Alert[]>();
+  for (const alert of [...alerts].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))) {
+    byIncident.set(alert.incident.id, [...(byIncident.get(alert.incident.id) ?? []), alert]);
+  }
+  return [...byIncident.values()]
+    .map((list): IncidentView => {
+      const showing = current.filter((alert) => alert.incident.id === list[0].incident.id && alert.severity.value !== 'OK');
+      const severity = showing.reduce<Severity>((worst, a) => (rank(a.severity.value) > rank(worst) ? a.severity.value : worst), 'OK');
+      return {
+        incident: list[0].incident,
+        category: list[0].category.label,
+        severity,
+        stages: [...new Set(showing.flatMap((a) => a.stages.map((s) => s.number)))].sort((a, b) => a - b),
+        alerts: list,
+        showing,
+      };
+    })
+    .filter((view) => view.showing.length > 0)
+    .sort((a, b) => rank(b.severity) - rank(a.severity) || Date.parse(b.alerts[0].publishedAt) - Date.parse(a.alerts[0].publishedAt));
+})();
+
+/**
+ * Describes a list of stage numbers.
+ *
+ * @param numbers The stage numbers, in order.
+ * @returns "All stages", "Stage 4" or "Stages 3, 4".
+ */
+export function stagesLabel(numbers: number[]): string {
+  if (stageCount > 0 && numbers.length >= stageCount) return 'All stages';
+  return `${numbers.length === 1 ? 'Stage' : 'Stages'} ${numbers.join(', ')}`;
+}
 
 /**
  * Names a timeline entry, so the yearly map can link to it.

@@ -1,8 +1,72 @@
 ---
 import Base from '../layouts/Base.astro';
-import SystemOverview from '../components/SystemOverview.astro';
+import AlertIncidents from '../components/AlertIncidents.astro';
+import StageGrid from '../components/StageGrid.astro';
+import StatusBoard from '../components/StatusBoard.astro';
+import { alertsUpdatedAt, hasAlerts, openIncidents, severityClass, stages, trail } from '../lib/alerts.ts';
+import { formatDateTime } from '../lib/status.ts';
+
+const LEGEND = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
+const overall = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
 ---
 
-<Base section="system" title="Systems" canonical="/system">
-  <SystemOverview />
+<Base
+  section="trail"
+  wide
+  description="Live conditions on the Pekoe Trail: which stages are open, and the incidents and alerts in force now."
+>
+  <h1 class="visually-hidden">Pekoe Trail conditions</h1>
+  <StatusBoard show="trail" />
+
+  {
+    !hasAlerts ? (
+      <section class="zone">
+        <div class="card">
+          <p class="empty">Trail alerts aren't available yet.</p>
+        </div>
+      </section>
+    ) : (
+      <>
+        <section class="zone" aria-labelledby="incidents-title">
+          <div class="zone-head">
+            <div>
+              <p class="eyebrow">Alert incidents</p>
+              <h2 id="incidents-title">What's happening on the trail</h2>
+            </div>
+            <span class="zone-count">
+              {openIncidents.length} open
+            </span>
+          </div>
+          {openIncidents.length > 0 ? (
+            <AlertIncidents />
+          ) : (
+            <div class="card">
+              <p class="empty">No open incidents. All stages are open.</p>
+            </div>
+          )}
+        </section>
+
+        <section class="zone" aria-labelledby="stages-title">
+          <div class="zone-head">
+            <div>
+              <p class="eyebrow">Stages</p>
+              <h2 id="stages-title">All {stages.length} stages</h2>
+            </div>
+            <a class:list={['zone-pill', overall]} href="/stages/overall">Every alert on the trail →</a>
+          </div>
+          <ul class="stages-legend grid-legend" aria-label="Stage colours">
+            {Object.entries(LEGEND).map(([sev, label]) => (
+              <li><span class:list={['swatch', severityClass(sev as keyof typeof LEGEND)]} />{label}</li>
+            ))}
+          </ul>
+          <StageGrid />
+        </section>
+
+        <p class="small muted">
+          {alertsUpdatedAt && <>Last updated {formatDateTime(alertsUpdatedAt)}, Sri Lanka time. </>}
+          Maps and stage details from <a href="https://thepekoetrail.org/pekoe-stages/">thepekoetrail.org</a>.
+        </p>
+      </>
+    )
+  }
 </Base>

@@ -35,12 +35,12 @@ issues are off, and only our team can open pull requests. See [LICENSE](LICENSE)
 
 ## Pages
 
-The two halves of the site are separate and don't link to each other. There is no home
-page: `/` redirects to `/system`.
+The two halves of the site are separate and don't link to each other. The home page is the
+trail's; `/trail` redirects to it.
 
 | Page | What it shows |
 |---|---|
-| `/trail` | The trail's colour now, a button per stage, and the alerts in force |
+| `/` | The trail's colour now, its open incidents with every alert about each, and a card per stage with its illustrated map |
 | `/stages/<n>` | One stage: its colour, active alerts, the past year day by day, and that year's updates |
 | `/stages/<n>/<year>` | The same for one calendar year |
 | `/stages/overall` | The whole trail, in the same shape, reached from the **All stages** button |
@@ -49,7 +49,7 @@ page: `/` redirects to `/system`.
 | `/systems/<id>` | One system: uptime, 24 hours of checks, 30 days of checks, 90 days of uptime, response times, incidents |
 | `/incidents`, `/incidents/<id>` | Incident and maintenance notes |
 
-Addresses carry no trailing slash: `/trail`, not `/trail/`. Anything else lands on the
+Addresses carry no trailing slash: `/system`, not `/system/`. Anything else lands on the
 site's own 404 page.
 
 ## Layout
@@ -83,7 +83,7 @@ HTTP status and a coarse error type; never anything from the response.
 
 Trail alerts (PSAs) are published in the admin panel, not here. Each run reads them from
 the public `alerts.historyUrl` in [`config/systems.yml`](config/systems.yml) and keeps only
-the fields the [Trail page](https://status.thepekoetrail.org/trail) shows.
+the fields the [Trail page](https://status.thepekoetrail.org) shows.
 
 Only the first run reads the whole register. After that a run asks for the alerts published
 since the newest one it already has, using the `updatedSince` watermark, so it normally reads
