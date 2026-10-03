@@ -1431,10 +1431,12 @@ a.incident:hover .incident-title {
   background: #A3A437;
 }
 
-.stage-pill.sev-advisory, .stage-pill.sev-precaution, .stage-pill.sev-closed { color: #080C06; }
+.stage-pill.sev-ok, .stage-pill.sev-advisory, .stage-pill.sev-precaution, .stage-pill.sev-closed { color: #080C06; }
+.stage-pill.sev-ok { background: #A3A437; }
 .stage-pill.sev-advisory { background: #FBC02D; }
 .stage-pill.sev-precaution { background: #FB862B; }
 .stage-pill.sev-closed { background: #FF5A5A; }
+.stage-pill.sev-ok .stage-pill-dot,
 .stage-pill.sev-advisory .stage-pill-dot,
 .stage-pill.sev-precaution .stage-pill-dot,
 .stage-pill.sev-closed .stage-pill-dot { background: #080C06; }
@@ -1481,10 +1483,6 @@ a.incident:hover .incident-title {
 }
 
 .stage-card-eyebrow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   color: var(--brand);
   font-size: 0.7rem;
   font-weight: 700;
@@ -1518,51 +1516,8 @@ a.incident:hover .incident-title {
   line-height: 1.35;
 }
 
-.stage-card-facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin-top: auto;
-  padding-top: 6px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.stage-card-facts > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.stage-card-facts svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* Difficulty as a quiet tag, darker the harder the stage. */
-.stage-diff {
-  padding: 1px 8px;
-  letter-spacing: 0;
-  text-transform: none;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  font-size: 0.74rem;
-  font-weight: 650;
-}
-
-.stage-diff.diff-easy { color: var(--up); }
-.stage-diff.diff-moderate { color: var(--brand); }
-.stage-diff.diff-difficult,
-.stage-diff.diff-hard { color: var(--text); border-color: var(--muted); }
-
 .stage-card-note {
+  margin-top: auto;
   color: var(--maintenance);
   font-size: 0.76rem;
   font-weight: 650;
