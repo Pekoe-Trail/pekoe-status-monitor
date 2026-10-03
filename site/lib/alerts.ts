@@ -98,8 +98,6 @@ export interface StageView {
   number: number;
   /** The worst severity the stage shows; OK when it shows nothing worse */
   severity: Severity;
-  /** The alert behind that severity, if any */
-  alert: Alert | undefined;
 }
 
 /**
@@ -124,8 +122,7 @@ export const stages: StageView[] = (() => {
   const highest = Math.max(stageCount, ...current.flatMap((a) => a.stages.map((s) => s.number)));
   return Array.from({ length: highest }, (_, i) => {
     const number = i + 1;
-    const alert = showingOn(number)[0];
-    return { number, severity: alert?.severity.value ?? 'OK', alert };
+    return { number, severity: showingOn(number)[0]?.severity.value ?? 'OK' };
   });
 })();
 

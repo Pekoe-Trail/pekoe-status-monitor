@@ -1422,27 +1422,6 @@ a.incident:hover .incident-title {
   font-weight: 400;
 }
 
-.stage-card-alert {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  padding: 6px 9px;
-  border-radius: 8px;
-  background: var(--bg);
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.stage-card-note {
-  margin-top: auto;
-  color: var(--maintenance);
-  font-size: 0.76rem;
-  font-weight: 650;
-}
-
 @media (max-width: 560px) {
   .stage-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
