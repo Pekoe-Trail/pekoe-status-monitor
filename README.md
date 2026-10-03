@@ -143,6 +143,12 @@ the notification secrets nothing is sent. To check some systems only:
 `STATUS_ONLY=api,website npm run check`. `STATUS_DATA_DIR` points the scripts and the build
 at another data folder. Don't commit or push from `data/`; the workflow owns that branch.
 
+Dependabot opens one pull request a week with every dependency update. It holds TypeScript
+at version 6, because `@astrojs/check`, which `npm run typecheck` runs, doesn't support 7
+yet, and `npm ci` refuses to install the two together. Remove the `ignore` entry in
+[`.github/dependabot.yml`](.github/dependabot.yml) once `@astrojs/check` accepts
+TypeScript 7.
+
 ## Adding or changing a system
 
 Edit [`config/systems.yml`](config/systems.yml) in a pull request. Each system needs a
