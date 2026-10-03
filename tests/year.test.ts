@@ -58,4 +58,22 @@ describe('yearWeeks', () => {
     expect(anchor('2026-09-13')).toBe('updated');
     expect(anchor('2026-09-22')).toBe('resolved');
   });
+
+  it('leaves the days before the first record without a colour', () => {
+    const weeks = yearWeeks(
+      [{ date: '2026-09-21', severity: 'ADVISORY', alerts: ['PSA-0001'] }],
+      '2026-09-18',
+      '2026-09-22',
+      [],
+      '2026-09-21',
+    );
+    expect(cell(weeks, '2026-09-20')).toEqual({ day: '2026-09-20', severity: null, alerts: [], anchor: null });
+    expect(cell(weeks, '2026-09-21')!.severity).toBe('ADVISORY');
+    expect(cell(weeks, '2026-09-22')!.severity).toBe('OK');
+  });
+
+  it('has no colour for any day when there are no records at all', () => {
+    const weeks = yearWeeks([], '2026-09-18', '2026-09-22', [], null);
+    expect(weeks.flatMap((w) => w.days).filter(Boolean).every((c) => c!.severity === null)).toBe(true);
+  });
 });

@@ -15,26 +15,38 @@ interface Props {
   label: string;
   /** The page's timeline entries, so a day links to the one that set its colour. */
   marks?: YearMark[];
+  /** The first day with records, as `YYYY-MM-DD`; null when there are none. */
+  since: string | null;
 }
 
-const { colours, from, to, label, marks = [] } = Astro.props;
+const { colours, from, to, label, marks = [], since } = Astro.props;
 const LABEL: Record<Severity, string> = { OK: 'Open', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' };
-const weeks = yearWeeks(colours, from, to, marks);
+const weeks = yearWeeks(colours, from, to, marks, since);
 const cells = weeks.flatMap((week) => week.days).filter((cell): cell is YearCell => cell !== null);
-const count = (severity: Severity) => cells.filter((cell) => cell.severity === severity).length;
-const withAlerts = cells.filter((cell) => cell.severity !== 'OK').length;
+const count = (severity: Severity | null) => cells.filter((cell) => cell.severity === severity).length;
+const withAlerts = cells.filter((cell) => cell.severity !== null && cell.severity !== 'OK').length;
+const unrecorded = count(null);
 
 /**
  * Writes the tooltip for one day.
  *
  * @param cell The day.
- * @returns The date, the stage's colour at the end of it, and the alerts open then.
+ * @returns The date, the stage's colour at the end of it or that there are no records, and
+ *   the alerts open then.
  */
 function describe(cell: YearCell) {
-  const parts = [formatDate(cell.day), LABEL[cell.severity]];
+  const parts = [formatDate(cell.day), cell.severity === null ? 'No records' : LABEL[cell.severity]];
   if (cell.alerts.length > 0) parts.push(cell.alerts.join(', '));
   return parts.join(' · ');
 }
+
+/**
+ * Names the CSS class for one day.
+ *
+ * @param cell The day.
+ * @returns Its severity's class, or `sev-none` when it has no records.
+ */
+const cellClass = (cell: YearCell) => (cell.severity === null ? 'sev-none' : severityClass(cell.severity));
 ---
 
 <div class="card year">
@@ -42,7 +54,7 @@ function describe(cell: YearCell) {
     <div
       class="year-map"
       role="img"
-      aria-label={`${label}: ${count('OK')} days open, ${count('ADVISORY')} with an advisory, ${count('PRECAUTION')} with a precaution, ${count('CLOSED')} closed`}
+      aria-label={`${label}: ${count('OK')} days open, ${count('ADVISORY')} with an advisory, ${count('PRECAUTION')} with a precaution, ${count('CLOSED')} closed${unrecorded > 0 ? `, ${unrecorded} with no records` : ''}`}
     >
       <div class="year-months" aria-hidden="true">
         {weeks.map((week) => <span>{week.month}</span>)}
@@ -57,9 +69,9 @@ function describe(cell: YearCell) {
               cell === null ? (
                 <span class="pad" />
               ) : cell.anchor ? (
-                <a class={severityClass(cell.severity)} href={`#${cell.anchor}`} data-tip={describe(cell)} tabindex="-1" />
+                <a class={cellClass(cell)} href={`#${cell.anchor}`} data-tip={describe(cell)} tabindex="-1" />
               ) : (
-                <span class={severityClass(cell.severity)} data-tip={describe(cell)} />
+                <span class={cellClass(cell)} data-tip={describe(cell)} />
               ),
             ),
           )
@@ -68,11 +80,20 @@ function describe(cell: YearCell) {
     </div>
   </div>
   <div class="year-foot">
-    <span>{withAlerts === 0 ? 'Open every day shown' : `${withAlerts} days with an alert`}</span>
+    <span>
+      {unrecorded === cells.length
+        ? 'No records yet'
+        : withAlerts > 0
+          ? `${withAlerts} days with an alert`
+          : unrecorded > 0
+            ? 'Open every day on record'
+            : 'Open every day shown'}
+    </span>
     <ul class="stages-legend" aria-hidden="true">
       {Object.entries(LABEL).map(([sev, text]) => (
         <li><span class:list={['swatch', severityClass(sev as Severity)]} />{text}</li>
       ))}
+      <li><span class="swatch sev-none" />No records</li>
     </ul>
   </div>
 </div>

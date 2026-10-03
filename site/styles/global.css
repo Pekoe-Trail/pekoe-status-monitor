@@ -845,6 +845,8 @@ a.incident:hover .incident-title {
 .year-grid .sev-advisory { background: #FBC02D; }
 .year-grid .sev-precaution { background: #FB862B; }
 .year-grid .sev-closed { background: #FF5A5A; }
+.year-grid .sev-none,
+.swatch.sev-none { background: var(--none); opacity: 0.45; }
 
 .year-foot {
   display: flex;

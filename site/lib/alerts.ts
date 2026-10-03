@@ -30,6 +30,15 @@ export const alertYears: string[] = [
 ].sort((a, b) => b.localeCompare(a));
 
 /**
+ * The Sri Lanka calendar day of the first alert on record, or null when there is none. Before
+ * it, the archive can't say whether a stage was open.
+ */
+export const firstRecordDay: string | null = alerts.reduce<string | null>((first, alert) => {
+  const day = localDay(new Date(alert.publishedAt));
+  return first === null || day < first ? day : first;
+}, null);
+
+/**
  * Names the CSS class for a severity. The colours live in the stylesheet, because the
  * Content-Security-Policy forbids inline styles.
  *
