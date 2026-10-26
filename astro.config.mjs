@@ -14,5 +14,6 @@ export default defineConfig({
   redirects: {
     '/alerts': '/',
     '/trail': '/',
+    '/stages/overall': '/',
   },
 });

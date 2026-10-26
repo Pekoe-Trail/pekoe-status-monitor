@@ -1,0 +1,21 @@
+---
+import type { Alert } from '../lib/alerts.ts';
+
+interface Props {
+  links: Alert['links'];
+}
+
+const { links } = Astro.props;
+---
+
+{
+  links.length > 0 && (
+    <ul class="alert-links" aria-label="Links">
+      {links.map((link) => (
+        <li>
+          <a href={link.url} rel="noopener noreferrer">{link.label ?? 'Learn more'} ↗</a>
+        </li>
+      ))}
+    </ul>
+  )
+}

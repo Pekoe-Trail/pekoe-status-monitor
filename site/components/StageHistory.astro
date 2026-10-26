@@ -9,9 +9,9 @@ import { incidentStories, storiesBetween } from '../lib/lifecycle.ts';
 import { addDays } from '../../scripts/lib/time.ts';
 
 interface Props {
-  /** The stage number, or null for the whole trail. */
-  stage: number | null;
-  /** The page the year links belong to, such as `/stages/4` or `/stages/overall`. */
+  /** The stage number. */
+  stage: number;
+  /** The page the year links belong to, such as `/stages/4`. */
   base: string;
   /** The first day shown, as `YYYY-MM-DD`. */
   from: string;
@@ -43,7 +43,7 @@ const marks = published.map((alert) => ({ at: Date.parse(alert.publishedAt), anc
   stories.length === 0 ? (
     <div class="card">
       <p class="empty">
-        No alerts {stage === null ? 'on the trail' : 'on this stage'}{' '}
+        No alerts on this stage{' '}
         {current === 'recent' ? 'in the past year' : `in ${current}`}.
       </p>
     </div>
@@ -57,7 +57,7 @@ const marks = published.map((alert) => ({ at: Date.parse(alert.publishedAt), anc
         <IncidentLanes stories={stories} from={from} to={to} now={now} />
       </div>
       <div class="story-stack">
-        {stories.map((story) => <IncidentStory story={story} stage={stage} now={now} />)}
+        {stories.map((story) => <IncidentStory story={story} stage={stage} />)}
       </div>
     </>
   )

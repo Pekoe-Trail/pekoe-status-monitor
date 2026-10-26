@@ -1,5 +1,5 @@
 import { SEVERITIES, type Alert, type Severity } from '../../scripts/lib/alerts.ts';
-import { addDays } from '../../scripts/lib/time.ts';
+import { addDays, localDay } from '../../scripts/lib/time.ts';
 
 /** A stage's colour at the end of one day, as the website banner showed it */
 export interface DayColour {
@@ -113,4 +113,20 @@ export function stageDays(
     }
   }
   return colours;
+}
+
+/**
+ * Picks a timeline's first day: the start of the month before its earliest event, so the chart
+ * isn't mostly empty months, and never before the window's first day.
+ *
+ * @param times The instants on the chart, in milliseconds.
+ * @param from The window's first day, as `YYYY-MM-DD`.
+ * @returns The first day to draw, as `YYYY-MM-DD`.
+ */
+export function chartStart(times: number[], from: string): string {
+  const earliest = Math.max(Math.min(...times), dayStart(from));
+  if (!Number.isFinite(earliest)) return from;
+  const [year, month] = localDay(new Date(earliest)).split('-').map(Number);
+  const before = month === 1 ? `${year - 1}-12-01` : `${year}-${String(month - 1).padStart(2, '0')}-01`;
+  return before > from ? before : from;
 }

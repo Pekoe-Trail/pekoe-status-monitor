@@ -1,0 +1,48 @@
+---
+import { alertHref, alertTitle, severityClass, stageNeighbours, type Alert } from '../lib/alerts.ts';
+import { formatDateTime } from '../lib/status.ts';
+
+interface Props {
+  alert: Alert;
+  /** The stages the alert covers, in number order. */
+  stages: number[];
+}
+
+const { alert, stages } = Astro.props;
+const panels = stages.map((stage) => ({ stage, ...stageNeighbours(alert, stage) }));
+const picking = stages.length > 1;
+---
+
+<section class="stage-nav" aria-label="Previous and next alerts" data-stage-nav={picking ? '' : undefined}>
+  {
+    panels.map(({ stage, prev, next }) => (
+      <div class="stage-nav-panel" data-stage={stage}>
+        <h2 class="stage-nav-for">Stage {stage} alerts</h2>
+        <div class="stage-nav-pair">
+          {[
+            { other: prev, dir: 'prev', label: '← Previous', none: `This is the first alert on Stage ${stage}.` },
+            { other: next, dir: 'next', label: 'Next →', none: `This is the latest alert on Stage ${stage}.` },
+          ].map(({ other, dir, label, none }) =>
+            other ? (
+              <a class:list={['stage-nav-link', `is-${dir}`]} href={alertHref(other, stage)} rel={dir}>
+                <span class="stage-nav-dir">{label}</span>
+                <span class="stage-nav-title">
+                  <span class:list={['sev', 'sev-small', severityClass(other.severity.value)]}>{other.severity.label}</span>
+                  {alertTitle(other)}
+                </span>
+                <span class="stage-nav-when">
+                  {other.number} · {formatDateTime(new Date(other.publishedAt))}
+                </span>
+              </a>
+            ) : (
+              <div class:list={['stage-nav-link', `is-${dir}`, 'is-none']}>
+                <span class="stage-nav-dir">{label}</span>
+                <span class="stage-nav-none">{none}</span>
+              </div>
+            ),
+          )}
+        </div>
+      </div>
+    ))
+  }
+</section>

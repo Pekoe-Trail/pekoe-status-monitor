@@ -1,31 +1,25 @@
 ---
 import ChannelPills from './ChannelPills.astro';
-import { alertAnchor, alertHref, alertTitle, current, severityClass, stagesLabel, where, type Alert } from '../lib/alerts.ts';
-import { duration, type IncidentStory } from '../lib/lifecycle.ts';
-import { formatDate, formatDateTime } from '../lib/status.ts';
+import { alertAnchor, alertHref, alertTitle, severityClass, type Alert } from '../lib/alerts.ts';
+import type { IncidentStory } from '../lib/lifecycle.ts';
+import { formatDateTime } from '../lib/status.ts';
 
 interface Props {
   story: IncidentStory;
-  stage: number | null;
-  now: number;
+  stage: number;
 }
 
-const { story, stage, now } = Astro.props;
+const { story, stage } = Astro.props;
 const LABEL = { OK: 'OK', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
-const opened = Date.parse(story.openedAt);
-const ended = story.endedAt ? Date.parse(story.endedAt) : null;
 const sev = severityClass(story.severity);
-const elsewhere = story.liveOn.filter((number) => number !== stage);
 
 /**
- * Tells whether a page shows an alert now: on a stage page, the stage's newest alert of a live
- * incident; on the whole trail, any alert the trail shows.
+ * Tells whether the stage shows an alert now: its newest alert of a live incident.
  *
  * @param alert The alert.
  * @returns True when it is showing now.
  */
-const showing = (alert: Alert) =>
-  stage === null ? current.includes(alert) : story.state === 'live' && alert === story.latest;
+const showing = (alert: Alert) => story.state === 'live' && alert === story.latest;
 
 /**
  * Names what an alert did in the incident's lifecycle.
@@ -60,30 +54,6 @@ function kind(alert: Alert): string {
       <span class="story-number">{story.incident.number}</span>
     </div>
     <h4 class="story-title">{story.incident.description}</h4>
-
-    <ol class="lifecycle" aria-label="Lifecycle">
-      <li class="lifecycle-step is-done">
-        <span class="lifecycle-name">Opened</span>
-        <span class="lifecycle-when">{formatDate(new Date(opened))}</span>
-      </li>
-      <li class:list={['lifecycle-step', story.state === 'live' ? 'is-now' : 'is-done', sev]}>
-        <span class="lifecycle-name">Live</span>
-        <span class="lifecycle-when">
-          {story.state === 'live' ? `${duration(opened, now)} so far` : `for ${duration(opened, ended!)}`}
-        </span>
-      </li>
-      <li class:list={['lifecycle-step', story.state === 'live' ? 'is-next' : 'is-done']}>
-        <span class="lifecycle-name">{story.state === 'cleared' ? 'Cleared here' : 'Closed'}</span>
-        <span class="lifecycle-when">{ended ? formatDate(new Date(ended)) : 'Not yet'}</span>
-      </li>
-    </ol>
-    {
-      elsewhere.length > 0 && (
-        <p class="story-note">
-          {stage === null ? 'Live on' : story.state === 'live' ? 'Also live on' : 'Still live on'} {stagesLabel(elsewhere).toLowerCase()}
-        </p>
-      )
-    }
   </header>
 
   {
@@ -100,17 +70,17 @@ function kind(alert: Alert): string {
               <span class="story-kind">{kind(alert)}</span>
               <time datetime={alert.publishedAt}>{formatDateTime(new Date(alert.publishedAt))}</time>
               <span>{alert.number}</span>
-              <span>{where(alert)}</span>
             </div>
             <div class="story-alert-head">
               <span class:list={['sev', 'sev-small', severityClass(alert.severity.value)]}>{alert.severity.label}</span>
-              <a class="story-alert-title" href={alertHref(alert)}>{alertTitle(alert)}</a>
+              <a class="story-alert-title" href={alertHref(alert, stage)}>{alertTitle(alert)}</a>
               {showing(alert) && (
                 <span class="story-showing">
                   <span class="story-live-dot" aria-hidden="true" />
                   Showing now
                 </span>
               )}
+              <span class="story-open" aria-hidden="true">Open alert →</span>
             </div>
             {alert.impact && <p class="story-impact">{alert.impact}</p>}
             {alert.action && <p class="story-action">{alert.action}</p>}
