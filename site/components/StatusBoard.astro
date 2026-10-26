@@ -1,5 +1,7 @@
 ---
-import { severityClass, trail } from '../lib/alerts.ts';
+import { hasAlerts, severityClass, stageHref, stageTallies, stages as allStages, trail } from '../lib/alerts.ts';
+import StatusIcon from './StatusIcon.astro';
+import { SEVERITY_ICON } from '../lib/icons.ts';
 import { OVERALL_TEXT, overall, systems } from '../lib/status.ts';
 
 interface Props {
@@ -15,24 +17,54 @@ const digitalDetail =
     ? 'Checks will show here'
     : `${up} of ${systems.length} services running normally` +
       (waiting > 0 ? ` · ${waiting} not checked yet` : '');
-const trailClass = trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
-const urgent = trail.severity === 'CLOSED' || trail.severity === 'PRECAUTION';
+const TALLY_LABEL = { OK: 'Good', ADVISORY: 'Advisory', PRECAUTION: 'Precaution', CLOSED: 'Closed' } as const;
+const total = Math.max(allStages.length, 1);
 ---
 
 <div class="board" role="status">
   {
     show === 'trail' ? (
-      <div class:list={['board-card', 'board-trail', trailClass]}>
-        <span class="board-label">
-          {urgent && <span class="ping" aria-hidden="true" />}
-          Trail
-        </span>
-        <span class="board-headline">{trail.headline}</span>
-        <span class="board-detail">{trail.detail}</span>
-      </div>
+      hasAlerts ? (
+        <ul class="tallies" aria-label="Stages by status">
+          {stageTallies.map(({ severity, stages }) => (
+            <li class:list={['tally', severityClass(severity), { 'is-empty': stages.length === 0 }]}>
+              <div class="tally-top">
+                <StatusIcon path={SEVERITY_ICON[severity]} />
+                <span class="tally-label">{TALLY_LABEL[severity]}</span>
+              </div>
+              <p class="tally-count">
+                <span class="tally-number">{stages.length}</span>
+                <span class="tally-of">of {total} stages</span>
+              </p>
+              <svg class="tally-bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+                <rect class="tally-track" width="100" height="6" rx="3" />
+                {stages.length > 0 && <rect class="tally-fill" width={Math.max((stages.length / total) * 100, 3)} height="6" rx="3" />}
+              </svg>
+              {stages.length > 0 ? (
+                <ul class="tally-stages" aria-label={`${TALLY_LABEL[severity]} stages`}>
+                  {stages.map((n) => (
+                    <li><a href={stageHref(n)} title={`Stage ${n}`}>{n}</a></li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="tally-none">No stages right now</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="board-card board-trail sev-unknown">
+          <span class="board-label">Trail</span>
+          <span class="board-headline">{trail.headline}</span>
+          <span class="board-detail">{trail.detail}</span>
+        </div>
+      )
     ) : (
       <div class:list={['board-card', 'board-digital', overall]}>
-        <span class="board-label">Digital</span>
+        <span class="board-label">
+          <StatusIcon path={SEVERITY_ICON[overall === 'operational' ? 'OK' : overall === 'unknown' ? 'ADVISORY' : 'PRECAUTION']} />
+          Digital
+        </span>
         <span class="board-headline">{OVERALL_TEXT[overall]}</span>
         <span class="board-detail">{digitalDetail}</span>
       </div>

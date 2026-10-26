@@ -48,9 +48,12 @@ export const severityClass = (severity: Severity) => `sev-${severity.toLowerCase
  * Builds the link to an alert's page.
  *
  * @param alert The alert.
- * @returns Its path, such as `/alerts/tpto-psa-00000042`.
+ * @param stage The stage the visitor is following, so the page opens on that stage's previous
+ *   and next alerts; left out when there is none.
+ * @returns Its path, such as `/alerts/tpto-psa-00000042` or `/alerts/tpto-psa-00000042?stage=4`.
  */
-export const alertHref = (alert: Alert) => `/alerts/${alert.number.toLowerCase()}`;
+export const alertHref = (alert: Alert, stage?: number) =>
+  `/alerts/${alert.number.toLowerCase()}${stage === undefined ? '' : `?stage=${stage}`}`;
 
 /**
  * Builds the link to a stage's page.
@@ -170,6 +173,22 @@ export const stageTimeline = (stage: number | null, from?: string, to?: string):
     })
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
+export interface StageTally {
+  severity: Severity;
+  /** The stages showing this severity now, in number order */
+  stages: number[];
+}
+
+/**
+ * Groups the stages by the severity each shows now, for the status board.
+ *
+ * @returns One tally per severity, from OK to CLOSED, empty ones included.
+ */
+export const stageTallies: StageTally[] = SEVERITIES.map((severity) => ({
+  severity,
+  stages: stages.filter((s) => s.severity === severity).map((s) => s.number),
+}));
+
 export interface TrailSummary {
   severity: Severity | 'unknown';
   headline: string;
@@ -208,3 +227,17 @@ export const trail: TrailSummary = (() => {
   }[worst.severity.value];
   return { severity: worst.severity.value, headline, detail: counts };
 })();
+
+/**
+ * Finds the alerts published just before and just after one on a stage, so a visitor can step
+ * through the stage's alerts in order.
+ *
+ * @param alert The alert.
+ * @param stage A stage the alert covers.
+ * @returns The stage's previous and next alerts, each undefined at that end.
+ */
+export function stageNeighbours(alert: Alert, stage: number): { prev?: Alert; next?: Alert } {
+  const list = stageAlerts(stage).sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt));
+  const i = list.indexOf(alert);
+  return { prev: list[i - 1], next: i < 0 ? undefined : list[i + 1] };
+}

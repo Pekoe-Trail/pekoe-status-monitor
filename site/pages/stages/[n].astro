@@ -1,54 +1,65 @@
 ---
 import Base from '../../layouts/Base.astro';
 import StageHistory from '../../components/StageHistory.astro';
-import { current, severityClass, showingOn, stages, trail, type StageView } from '../../lib/alerts.ts';
+import StatusIcon from '../../components/StatusIcon.astro';
+import { severityClass, showingOn, stages, type StageView } from '../../lib/alerts.ts';
+import { SEVERITY_ICON } from '../../lib/icons.ts';
+import { stageInfo, stageMap } from '../../lib/stage-info.ts';
 import { YEAR_DAYS } from '../../lib/year.ts';
 import { addDays, localDay } from '../../../scripts/lib/time.ts';
 
 /**
- * Lists one page per trail stage, and one for the whole trail.
+ * Lists one page per trail stage.
  *
- * @returns Each stage's route, such as `4`, and `overall`, with the stage as the page's
- *   props; the overall page has none.
+ * @returns Each stage's route, such as `4`, with the stage as the page's props.
  */
 export function getStaticPaths() {
-  return [
-    { params: { n: 'overall' }, props: { stage: null } },
-    ...stages.map((stage) => ({ params: { n: String(stage.number) }, props: { stage } })),
-  ];
+  return stages.map((stage) => ({ params: { n: String(stage.number) }, props: { stage } }));
 }
 
 interface Props {
-  stage: StageView | null;
+  stage: StageView;
 }
 
 const { stage } = Astro.props;
 const LABEL = { OK: 'Open', ADVISORY: 'Open, with an advisory', PRECAUTION: 'Open with caution', CLOSED: 'Closed' } as const;
-const number = stage?.number ?? null;
-const name = stage ? `Stage ${stage.number}` : 'The whole trail';
-const base = stage ? `/stages/${stage.number}` : '/stages/overall';
-const open = stage ? showingOn(stage.number) : current;
-const severity = stage ? severityClass(stage.severity) : trail.severity === 'unknown' ? 'sev-unknown' : severityClass(trail.severity);
-const headline = stage ? LABEL[stage.severity] : trail.headline;
+const number = stage.number;
+const name = `Stage ${number}`;
+const base = `/stages/${number}`;
+const open = showingOn(number);
+const severity = severityClass(stage.severity);
+const headline = LABEL[stage.severity];
+const info = stageInfo(number);
 const to = localDay(new Date());
 const from = addDays(to, 1 - YEAR_DAYS);
 ---
 
 <Base
   section="trail"
-  title={stage ? name : 'Overall'}
+  title={name}
   description={`${name}: ${headline}. Current alerts and the past year, day by day.`}
 >
   <a class="back" href="/">← Trail</a>
   <h1 class="visually-hidden">{name}</h1>
 
   <div class="board" role="status">
-    <div class:list={['board-card', 'board-trail', severity]}>
-      <span class="board-label">{stage ? name : 'All stages'}</span>
-      <span class="board-headline">{headline}</span>
-      <span class="board-detail">
-        {open.length === 0 ? 'No active alerts' : `${open.length} active ${open.length === 1 ? 'alert' : 'alerts'}`}
-      </span>
+    <div class:list={['board-card', 'board-trail', 'board-stage', severity]}>
+      <div class="board-main">
+        <span class="board-label">
+          <StatusIcon path={SEVERITY_ICON[stage.severity]} />
+          {name}
+        </span>
+        <span class="board-headline">{headline}</span>
+        {info && (
+          <span class="board-route">
+            {info.from} <span aria-label="to">⇌</span> {info.to}
+          </span>
+        )}
+        <span class="board-detail">
+          {open.length === 0 ? 'No active alerts' : `${open.length} active ${open.length === 1 ? 'alert' : 'alerts'}`}
+        </span>
+      </div>
+      <img class="board-map" src={stageMap(number)} width="480" height="501" alt={`Map of ${name}`} />
     </div>
   </div>
 

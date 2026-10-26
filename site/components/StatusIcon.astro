@@ -1,0 +1,14 @@
+---
+interface Props {
+  /** The icon's path, on a 24-unit grid. */
+  path: string;
+}
+
+const { path } = Astro.props;
+---
+
+<span class="status-icon" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d={path} />
+  </svg>
+</span>

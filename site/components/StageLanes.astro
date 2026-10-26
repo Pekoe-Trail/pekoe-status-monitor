@@ -1,0 +1,161 @@
+---
+import { alertHref, alertTitle, alerts, severityClass, stageAlerts, stageHref, stages, type Alert } from '../lib/alerts.ts';
+import { chartStart, days } from '../lib/calendar.ts';
+import { incidentStories } from '../lib/lifecycle.ts';
+import { formatDateTime } from '../lib/status.ts';
+import { SEVERITIES } from '../../scripts/lib/alerts.ts';
+import { addDays, localDay } from '../../scripts/lib/time.ts';
+
+interface Props {
+  /** The first day of the window, as `YYYY-MM-DD`. */
+  from: string;
+  /** The last day of the window, as `YYYY-MM-DD`. */
+  to: string;
+  now: number;
+}
+
+const { from, to, now } = Astro.props;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const W = 1160;
+const GUTTER = 72;
+const ROW = 26;
+const BAR = 8;
+const AXIS = 38;
+const DAY = 86_400_000;
+const NUDGE = 9;
+const end = Math.min(Date.parse(`${addDays(to, 1)}T00:00:00+05:30`), now);
+const windowStart = Date.parse(`${from}T00:00:00+05:30`);
+
+/**
+ * Lists a stage's alerts in the window, oldest first.
+ *
+ * @param stage The stage number.
+ * @returns The alerts published in the window.
+ */
+const inWindow = (stage: number): Alert[] =>
+  stageAlerts(stage)
+    .filter((alert) => {
+      const at = Date.parse(alert.publishedAt);
+      return at >= windowStart && at <= end;
+    })
+    .sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt));
+
+const rows = stages.map((stage) => ({
+  ...stage,
+  alerts: inWindow(stage.number),
+  spans: incidentStories(alerts, stage.number)
+    .flatMap((story) => story.spans)
+    .filter((span) => span.from < end && span.to > windowStart)
+    .sort((a, b) => SEVERITIES.indexOf(a.severity) - SEVERITIES.indexOf(b.severity)),
+}));
+
+const first = chartStart(
+  rows.flatMap((row) => [...row.spans.map((span) => span.from), ...row.alerts.map((alert) => Date.parse(alert.publishedAt))]),
+  from,
+);
+const start = Date.parse(`${first}T00:00:00+05:30`);
+
+/**
+ * Places an instant on the chart.
+ *
+ * @param t The instant, in milliseconds.
+ * @returns Its x position, clamped to the window.
+ */
+const x = (t: number) => GUTTER + ((Math.min(Math.max(t, start), end) - start) / (end - start)) * (W - GUTTER - 10);
+
+/**
+ * Spreads a stage's alerts of the same day side by side, so each keeps its own dot.
+ *
+ * @param list The stage's alerts, oldest first.
+ * @returns Each alert with its x position.
+ */
+function placed(list: Alert[]): { alert: Alert; cx: number }[] {
+  const byDay = Map.groupBy(list, (alert) => localDay(new Date(alert.publishedAt)));
+  return [...byDay.values()].flatMap((group) => {
+    const base = x(Date.parse(group[0].publishedAt));
+    return group.map((alert, k) => ({ alert, cx: base + (k - (group.length - 1) / 2) * NUDGE }));
+  });
+}
+
+const height = rows.length * ROW + AXIS;
+const plot = height - AXIS;
+const months = days(first, to)
+  .filter((day) => day.endsWith('-01'))
+  .map((day) => ({ x: x(Date.parse(`${day}T00:00:00+05:30`)), label: MONTHS[Number(day.slice(5, 7)) - 1] }));
+
+/**
+ * Picks which days get a date under the chart, as many as fit: every day, every other day,
+ * each Monday, or the 1st and 15th of each month.
+ *
+ * @param day A day, as `YYYY-MM-DD`.
+ * @returns True when the day gets a date.
+ */
+function labelled(day: string): boolean {
+  const perDay = (W - GUTTER - 10) / ((end - start) / DAY);
+  const date = Number(day.slice(8, 10));
+  if (perDay >= 26) return true;
+  if (perDay >= 13) return date % 2 === 1;
+  if (perDay * 7 >= 26) return new Date(`${day}T12:00:00+05:30`).getUTCDay() === 1;
+  return date === 1 || date === 15;
+}
+
+const today = x(end);
+const dates = days(first, to)
+  .filter(labelled)
+  .map((day) => ({ x: x(Date.parse(`${day}T00:00:00+05:30`)), label: String(Number(day.slice(8, 10))) }))
+  .filter((d) => today - d.x > 34);
+const total = rows.reduce((n, row) => n + row.alerts.length, 0);
+---
+
+<div class="lanes-scroll">
+  <svg
+    class="lanes stage-lanes"
+    viewBox={`0 0 ${W} ${height}`}
+    role="img"
+    aria-label={`Each stage's status over time, with ${total} alerts as dots`}
+  >
+    {dates.map((d) => (
+      <g class="lanes-date">
+        <line x1={d.x} x2={d.x} y1="0" y2={plot + 4} />
+        <text x={d.x} y={plot + 15}>{d.label}</text>
+      </g>
+    ))}
+    {months.map((m) => (
+      <g class="lanes-month">
+        <line x1={m.x} x2={m.x} y1="0" y2={height - 12} />
+        <text x={m.x + 3} y={height - 2}>{m.label}</text>
+      </g>
+    ))}
+    <g class="lanes-today">
+      <line x1={today} x2={today} y1="0" y2={plot + 4} />
+      <text x={today} y={plot + 15}>Today</text>
+    </g>
+    {rows.map((row, i) => {
+      const cy = i * ROW + ROW / 2;
+      return (
+        <g class="stage-row">
+          <a href={stageHref(row.number)}>
+            <text class="stage-row-label" x="0" y={cy}>Stage {row.number}</text>
+          </a>
+          <rect class="lane-track" x={GUTTER} y={cy - BAR / 2} width={W - GUTTER} height={BAR} rx={BAR / 2} />
+          {row.spans.map((span) => (
+            <rect
+              class:list={['lane-seg', severityClass(span.severity)]}
+              x={x(span.from)}
+              y={cy - BAR / 2}
+              width={Math.max(x(span.to) - x(span.from), 3)}
+              height={BAR}
+              rx={BAR / 2}
+            />
+          ))}
+          {placed(row.alerts).map(({ alert, cx }) => (
+            <a href={alertHref(alert, row.number)}>
+              <title>{`Stage ${row.number} · ${alert.number} · ${alert.severity.label} · ${alertTitle(alert)} · ${formatDateTime(new Date(alert.publishedAt))}`}</title>
+              <circle class:list={['lane-mark', severityClass(alert.severity.value)]} cx={cx} cy={cy} r="4.5" />
+            </a>
+          ))}
+        </g>
+      );
+    })}
+  </svg>
+</div>

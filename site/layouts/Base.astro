@@ -9,7 +9,6 @@ interface Props {
   section: 'trail' | 'system';
   /** The address to name as this page's own, when it is served at more than one. */
   canonical?: string;
-  wide?: boolean;
 }
 
 const {
@@ -17,10 +16,15 @@ const {
   description = 'Live status of the Pekoe Trail website, app and services, with uptime history and incident reports.',
   section,
   canonical,
-  wide = false,
 } = Astro.props;
 const pageTitle = title ? `${title} · Pekoe Trail Status` : 'Pekoe Trail Status';
 const path = Astro.url.pathname.replace(/\.html$/, '');
+const FOOTER_LINKS = [
+  { href: 'https://thepekoetrail.org/about-us/', label: 'About Us' },
+  { href: 'https://thepekoetrail.org/contact-us/', label: 'Contact Us' },
+  { href: 'https://thepekoetrail.org/terms-conditions/', label: 'Terms & Conditions' },
+  { href: 'https://thepekoetrail.org/privacy-policy/', label: 'Privacy Policy' },
+];
 ---
 
 <!doctype html>
@@ -38,6 +42,8 @@ const path = Astro.url.pathname.replace(/\.html$/, '');
     <meta name="color-scheme" content="light" />
     <script is:inline src="/theme.js"></script>
     <script is:inline defer src="/tooltip.js"></script>
+    <script is:inline defer src="/back.js"></script>
+    <script is:inline defer src="/stage-nav.js"></script>
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={new URL(canonical ?? path, Astro.site)} />
@@ -49,7 +55,7 @@ const path = Astro.url.pathname.replace(/\.html$/, '');
   </head>
   <body>
     <header class="site-header">
-      <div class:list={['wrap', { 'wrap-wide': wide }]}>
+      <div class="wrap">
         <div class="brand">
           <img class="logo-light" src="/logo.png" width="72" height="48" alt="The Pekoe Trail" />
           <img class="logo-dark" src="/logo-white.png" width="72" height="48" alt="The Pekoe Trail" />
@@ -65,25 +71,26 @@ const path = Astro.url.pathname.replace(/\.html$/, '');
         </button>
       </div>
     </header>
-    <main class:list={['wrap', { 'wrap-wide': wide }]}>
+    <main class="wrap">
       <slot />
+      {
+        section === 'system' && (
+          <p class="small muted checked">
+            {updatedAt ? <>Last checked {formatDateTime(updatedAt)}, Sri Lanka time</> : 'No checks yet'}
+          </p>
+        )
+      }
     </main>
     <footer class="site-footer">
-      <div class:list={['wrap', { 'wrap-wide': wide }]}>
-        {section === 'system' ? (
-          <>
-            <span>
-              {updatedAt ? <>Last checked {formatDateTime(updatedAt)}, Sri Lanka time</> : 'No checks yet'}
-            </span>
-            <span>
-              <a href="https://thepekoetrail.org">thepekoetrail.org</a>
-            </span>
-          </>
-        ) : (
-          <span>
-            <a href="https://thepekoetrail.org">thepekoetrail.org</a>
-          </span>
-        )}
+      <div class="wrap">
+        <a class="site-footer-name" href="https://thepekoetrail.org">The Pekoe Trail</a>
+        <nav aria-label="The Pekoe Trail website">
+          <ul>
+            {FOOTER_LINKS.map((link) => (
+              <li><a href={link.href}>{link.label}</a></li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </footer>
   </body>

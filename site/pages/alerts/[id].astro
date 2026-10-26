@@ -1,15 +1,20 @@
 ---
 import Base from '../../layouts/Base.astro';
+import AlertLinks from '../../components/AlertLinks.astro';
 import ChannelPills from '../../components/ChannelPills.astro';
+import StageNav from '../../components/StageNav.astro';
+import StatusIcon from '../../components/StatusIcon.astro';
 import {
-  alertHref,
   alertTitle,
   alerts,
   current,
   severityClass,
+  stageHref,
+  stagesLabel,
   where,
   type Alert,
 } from '../../lib/alerts.ts';
+import { SEVERITY_ICON } from '../../lib/icons.ts';
 import { formatDateTime } from '../../lib/status.ts';
 
 /**
@@ -39,63 +44,109 @@ const later = alerts
 const replacedBy = showing
   ? undefined
   : (later.find((other) => other.incident.id === alert.incident.id) ?? later[0]);
+const numbers = alert.stages.map((s) => s.number).sort((a, b) => a - b);
+const everyStage = stagesLabel(numbers) === 'All stages';
+const badge =
+  numbers.length === 1
+    ? { label: 'Stage', value: String(numbers[0]).padStart(2, '0') }
+    : { label: 'Stages', value: everyStage ? 'All' : String(numbers.length) };
 ---
 
 <Base section="trail" title={title} description={`${alert.severity.label}, ${where(alert)}: ${title}`}>
   <a class="back" href="/">← Trail</a>
 
-  <div class:list={['alert-hero', sev, { done: !showing }]}>
-    <div class="alert-card-top">
-      <span class:list={['sev', sev]}>{alert.severity.label}</span>
-      {showing ? <span class="tag">Showing now</span> : <span class="tag">Replaced</span>}
-      <span class="alert-where">{alert.number}</span>
+  <header class:list={['board-card', 'board-trail', 'alert-head', sev]}>
+    <div class="alert-stage">
+      <span class="alert-stage-label" data-stage-badge-label>{badge.label}</span>
+      <span class="alert-stage-num" data-stage-badge-num>{badge.value}</span>
     </div>
-    <h1>{title}</h1>
-    <dl class="alert-facts">
-      <div><dt>Where</dt><dd>{where(alert)}</dd></div>
-      <div><dt>Category</dt><dd>{alert.category.label}</dd></div>
-      <div><dt>Incident</dt><dd>{alert.incident.number}: {alert.incident.description}</dd></div>
+    <span class="board-label">
+      <StatusIcon path={SEVERITY_ICON[alert.severity.value]} />
+      {alert.severity.label} · {alert.number}
+    </span>
+    <h1 class="board-headline">{title}</h1>
+    <p class="alert-head-meta">
       {
-        alert.channels.length > 0 && (
-          <div>
-            <dt>Alert sent via</dt>
-            <dd><ChannelPills channels={alert.channels} heading={false} /></dd>
-          </div>
+        showing ? (
+          <span class="alert-state is-showing">
+            <span class="story-live-dot" aria-hidden="true" />
+            Showing now
+          </span>
+        ) : (
+          <span class="alert-state">Replaced</span>
         )
       }
-      <div><dt>Published</dt><dd>{formatDateTime(new Date(alert.publishedAt))}</dd></div>
+      <span>Published {formatDateTime(new Date(alert.publishedAt))}</span>
+    </p>
+  </header>
+
+  <StageNav alert={alert} stages={numbers} />
+
+  <div class="alert-layout">
+    <div class="alert-main">
       {
-        replacedBy && (
-          <div>
-            <dt>Replaced</dt>
-            <dd>{formatDateTime(new Date(replacedBy.publishedAt))}</dd>
-          </div>
+        alert.impact && (
+          <section class="card alert-section">
+            <h2>What's happening</h2>
+            <p>{alert.impact}</p>
+            <AlertLinks links={alert.links} />
+          </section>
         )
       }
-    </dl>
+      {
+        alert.action && (
+          <section class:list={['card', 'alert-section', 'alert-action', sev]}>
+            <h2>
+              <StatusIcon path={SEVERITY_ICON[alert.severity.value]} />
+              What to do
+            </h2>
+            <p>{alert.action}</p>
+          </section>
+        )
+      }
+      {!alert.impact && <AlertLinks links={alert.links} />}
+    </div>
+
+    <aside class="card alert-details" aria-labelledby="details-title">
+      <h2 id="details-title">Details</h2>
+      <dl>
+        <div>
+          <dt data-stage-label>{numbers.length === 1 ? 'Stage' : 'Stages'}</dt>
+          <dd>
+            {everyStage && <span data-all-stages>All stages</span>}
+            <ul class="stage-chips" hidden={everyStage}>
+              {numbers.map((n) => (
+                <li data-stage={n}><a href={stageHref(n)} title={`Stage ${n}`}>{n}</a></li>
+              ))}
+            </ul>
+            <span class="alert-details-sub" data-other-stages hidden />
+          </dd>
+        </div>
+        <div><dt>Category</dt><dd>{alert.category.label}</dd></div>
+        <div>
+          <dt>Incident</dt>
+          <dd>{alert.incident.description}<span class="alert-details-sub">{alert.incident.number}</span></dd>
+        </div>
+        <div><dt>Published</dt><dd>{formatDateTime(new Date(alert.publishedAt))}</dd></div>
+        {
+          replacedBy && (
+            <div>
+              <dt>Replaced</dt>
+              <dd>{formatDateTime(new Date(replacedBy.publishedAt))}</dd>
+            </div>
+          )
+        }
+        {
+          alert.channels.length > 0 && (
+            <div>
+              <dt>Sent via</dt>
+              <dd><ChannelPills channels={alert.channels} heading={false} /></dd>
+            </div>
+          )
+        }
+      </dl>
+    </aside>
   </div>
 
-  <div class="card prose">
-    {alert.impact && (<><h2>What's happening</h2><p>{alert.impact}</p></>)}
-    {alert.action && (<><h2>What to do</h2><p>{alert.action}</p></>)}
-    {
-      alert.links.map((link) => (
-        <p>
-          <a class="button" href={link.url} rel="noopener noreferrer">{link.label ?? 'Learn more'} →</a>
-        </p>
-      ))
-    }
-  </div>
-
-  {
-    replacedBy && (
-      <p class="small muted">
-        Replaced by{' '}
-        <a href={alertHref(replacedBy)}>
-          {replacedBy.number}: {alertTitle(replacedBy)}
-        </a>.
-      </p>
-    )
-  }
   <p class="small muted">Times are Sri Lanka time.</p>
 </Base>
