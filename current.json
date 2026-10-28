@@ -1,50 +1,50 @@
 {
-  "updatedAt": "2026-10-28T06:41:00.103Z",
+  "updatedAt": "2026-10-28T06:51:01.380Z",
   "systems": {
     "website": {
       "status": "up",
-      "checkedAt": "2026-10-28T06:40:56.774Z",
-      "ms": 1986,
+      "checkedAt": "2026-10-28T06:51:01.236Z",
+      "ms": 1867,
       "code": 200,
       "failStreak": 0,
       "alerted": false
     },
     "members-portal": {
       "status": "up",
-      "checkedAt": "2026-10-28T06:40:56.041Z",
-      "ms": 1218,
+      "checkedAt": "2026-10-28T06:51:00.719Z",
+      "ms": 1268,
       "code": 200,
       "failStreak": 0,
       "alerted": false
     },
     "shop": {
-      "status": "degraded",
-      "checkedAt": "2026-10-28T06:41:00.098Z",
-      "ms": 5274,
+      "status": "up",
+      "checkedAt": "2026-10-28T06:51:01.376Z",
+      "ms": 1925,
       "code": 200,
       "failStreak": 0,
       "alerted": false
     },
     "api": {
       "status": "up",
-      "checkedAt": "2026-10-28T06:40:55.737Z",
-      "ms": 911,
+      "checkedAt": "2026-10-28T06:51:00.331Z",
+      "ms": 879,
       "code": 200,
       "failStreak": 0,
       "alerted": false
     },
     "api-login": {
       "status": "up",
-      "checkedAt": "2026-10-28T06:40:56.368Z",
-      "ms": 997,
+      "checkedAt": "2026-10-28T06:51:00.901Z",
+      "ms": 972,
       "code": 201,
       "failStreak": 0,
       "alerted": false
     },
     "cdn": {
       "status": "up",
-      "checkedAt": "2026-10-28T06:40:55.183Z",
-      "ms": 354,
+      "checkedAt": "2026-10-28T06:50:59.860Z",
+      "ms": 406,
       "code": 200,
       "failStreak": 0,
       "alerted": false
