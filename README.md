@@ -143,11 +143,9 @@ the notification secrets nothing is sent. To check some systems only:
 `STATUS_ONLY=api,website npm run check`. `STATUS_DATA_DIR` points the scripts and the build
 at another data folder. Don't commit or push from `data/`; the workflow owns that branch.
 
-Dependabot opens one pull request a week with every dependency update. It holds TypeScript
-at version 6, because `@astrojs/check`, which `npm run typecheck` runs, doesn't support 7
-yet, and `npm ci` refuses to install the two together. Remove the `ignore` entry in
-[`.github/dependabot.yml`](.github/dependabot.yml) once `@astrojs/check` accepts
-TypeScript 7.
+Dependencies are updated by hand; there is no Dependabot. Keep TypeScript at version 6
+until `@astrojs/check`, which `npm run typecheck` runs, supports 7: `npm ci` refuses to
+install the two together.
 
 ## Adding or changing a system
 
@@ -363,7 +361,7 @@ One-time steps for the repository and domain.
 8. **Repository settings:** protect `main` (1 approval, no force pushes), set workflow
    permissions to read-only, turn off issues, discussions, wiki and projects, limit pull
    requests to collaborators, require approval for workflow runs from all outside collaborators, and turn
-   on Dependabot alerts and private vulnerability reporting. See [SECURITY.md](SECURITY.md).
+   on private vulnerability reporting. See [SECURITY.md](SECURITY.md).
 9. **Schedule:** set up the Cloudflare Worker that starts the checks — see
    [Scheduling the checks](#scheduling-the-checks).
 10. Run the **Check** workflow once by hand (Actions → Check → Run workflow).
