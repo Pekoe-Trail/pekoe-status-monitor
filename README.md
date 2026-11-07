@@ -66,7 +66,9 @@ site's own 404 page.
 ## Status data
 
 The `status-data` branch holds the results, so the commit every 10 minutes never touches
-`main`:
+`main`. GitHub sometimes refuses a push with a server error, so the workflow tries three
+times, 10 and 30 seconds apart; a branch that moved meanwhile is refused rather than
+overwritten:
 
 | File | Content |
 |---|---|
