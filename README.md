@@ -66,7 +66,9 @@ site's own 404 page.
 ## Status data
 
 The `status-data` branch holds the results, so the commit every 10 minutes never touches
-`main`:
+`main`. GitHub sometimes refuses a push with a server error, so the workflow tries three
+times, 10 and 30 seconds apart; a branch that moved meanwhile is refused rather than
+overwritten:
 
 | File | Content |
 |---|---|
@@ -143,11 +145,9 @@ the notification secrets nothing is sent. To check some systems only:
 `STATUS_ONLY=api,website npm run check`. `STATUS_DATA_DIR` points the scripts and the build
 at another data folder. Don't commit or push from `data/`; the workflow owns that branch.
 
-Dependabot opens one pull request a week with every dependency update. It holds TypeScript
-at version 6, because `@astrojs/check`, which `npm run typecheck` runs, doesn't support 7
-yet, and `npm ci` refuses to install the two together. Remove the `ignore` entry in
-[`.github/dependabot.yml`](.github/dependabot.yml) once `@astrojs/check` accepts
-TypeScript 7.
+Dependencies are updated by hand; there is no Dependabot. Keep TypeScript at version 6
+until `@astrojs/check`, which `npm run typecheck` runs, supports 7: `npm ci` refuses to
+install the two together.
 
 ## Adding or changing a system
 
@@ -171,47 +171,38 @@ GitHub → Settings → Developer settings → **Fine-grained tokens** → Gener
 | Resource owner | `Pekoe-Trail` |
 | Repository access | Only select repositories → `pekoe-status-monitor` |
 | Permissions | **Actions: Read and write**, nothing else |
-| Expiration | Note the date; the checks stop silently when it lapses |
+| Expiration | Note the date; when it lapses the checks stop, and the Worker reports a 401 on Telegram |
 
 ### 2. The Worker
 
 Cloudflare dashboard → **Workers & Pages** → **Create** → **Hello World** → name it
-`pekoe-status-trigger` → Deploy → **Edit code**, and replace the file with:
+`pekoe-status-trigger` → Deploy → **Edit code**, and replace the file with
+[`worker/trigger.js`](worker/trigger.js). Paste it again whenever that file changes.
 
-```js
-export default {
-  /**
-   * Starts the status check on its schedule.
-   *
-   * @param event The cron event.
-   * @param env The Worker's bindings, holding GITHUB_TOKEN.
-   */
-  async scheduled(event, env) {
-    const res = await fetch(
-      'https://api.github.com/repos/Pekoe-Trail/pekoe-status-monitor/actions/workflows/check.yml/dispatches',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-          Accept: 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'User-Agent': 'pekoe-status-trigger',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ref: 'main' }),
-      },
-    );
-    if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
-  },
-};
-```
+Every ten minutes the Worker:
 
-### 3. The secret and the trigger
+1. **Clears stuck runs.** It force-cancels any Check run still open after 20 minutes. A job
+   GitHub never gives a runner stays open indefinitely, and because only one run at a time
+   may hold the status data, it blocks every run after it: one did for 16 days in October.
+2. **Starts the check** through GitHub's dispatch API.
+3. **Reports a stalled monitor.** When no check has succeeded for 40 minutes it tells the
+   developers' Telegram group, again every six hours while it lasts, and once more when
+   checks resume.
+4. **Reports its own errors**, such as an expired token, on Telegram once every six hours
+   while they last. Every error also shows in the Worker's **Logs**.
+
+It keeps no state: each message is sent by the one run whose timing falls in its window.
+
+### 3. Secrets and the trigger
 
 In the Worker's **Settings**:
 
-- **Variables and Secrets** → Add → type **Secret**, name `GITHUB_TOKEN`, value the token
-  on its own. The code adds `Bearer`, so including it here gives a 401.
+- **Variables and Secrets** → Add, each of type **Secret**:
+  - `GITHUB_TOKEN`: the token on its own. The code adds `Bearer`, so including it here
+    gives a 401.
+  - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`: the same values as the `monitor`
+    environment. Without them the Worker still clears stuck runs and starts the check,
+    but tells nobody when the checks stop.
 - **Trigger Events** → Add → **Cron Trigger** → `*/10 * * * *`.
 
 Leave the `workers.dev` URL disabled. The Worker needs no public address, and without one
@@ -222,7 +213,8 @@ nobody can start a run from the internet.
 A run tagged `workflow_dispatch` should appear in Actions within ten minutes, and the
 "Last checked" time in the footer of [the status page](https://status.thepekoetrail.org)
 should move. The Worker's **Logs** tab shows each invocation; a failure throws with the
-status GitHub returned, so it shows up as an error rather than passing quietly.
+status GitHub returned, so it shows up as an error rather than passing quietly. A line
+starting `Cancelled run` means the Worker cleared a stuck run.
 
 | Status | Cause |
 |---|---|
@@ -363,7 +355,7 @@ One-time steps for the repository and domain.
 8. **Repository settings:** protect `main` (1 approval, no force pushes), set workflow
    permissions to read-only, turn off issues, discussions, wiki and projects, limit pull
    requests to collaborators, require approval for workflow runs from all outside collaborators, and turn
-   on Dependabot alerts and private vulnerability reporting. See [SECURITY.md](SECURITY.md).
+   on private vulnerability reporting. See [SECURITY.md](SECURITY.md).
 9. **Schedule:** set up the Cloudflare Worker that starts the checks — see
    [Scheduling the checks](#scheduling-the-checks).
 10. Run the **Check** workflow once by hand (Actions → Check → Run workflow).
@@ -371,11 +363,13 @@ One-time steps for the repository and domain.
 ## Limits
 
 - **A run can be late or missed.** The page shows when the last check ran, and warns when
-  it's more than an hour old, so a stalled trigger is visible rather than silent. A short
-  outage between runs can still be missed.
+  it's more than an hour old, and the Worker tells developers after 40 minutes without a
+  successful check. A stuck run is cancelled after 20 minutes, so the gap it leaves is
+  about that long. A short outage between runs can still be missed.
 - **The trigger runs on Cloudflare**, which also fronts the sites being checked. A
   Cloudflare outage stops new checks; the page stays up on GitHub Pages and goes visibly
-  stale. The token behind it expires, and the checks stop quietly when it does.
+  stale. The token behind it expires; the Worker then reports the 401 on Telegram every six
+  hours until it's replaced.
 - **Checks run from GitHub's servers** in the US and Europe, not from Sri Lanka.
 - **If GitHub is down,** checks stop and the page keeps its last state.
 - The sign-in check logs in on every run. Filter the monitoring account out of

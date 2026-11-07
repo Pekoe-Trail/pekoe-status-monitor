@@ -1,7 +1,5 @@
 name: Check
 
-# Triggered every 10 minutes by an EventBridge schedule in AWS, which calls the dispatch
-# API. GitHub's own cron never fired for this repository.
 on:
   workflow_dispatch:
 
@@ -93,7 +91,11 @@ jobs:
           git add -A
           git diff --cached --quiet && exit 0
           git commit -q -m "chore(data): checks $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push -q origin HEAD:status-data
+          for wait in 10 30 0; do
+            git push -q origin HEAD:status-data && exit 0
+            [ "$wait" -gt 0 ] && sleep "$wait"
+          done
+          exit 1
 
   deploy:
     needs: save

@@ -43,4 +43,5 @@ This repository and its workflow logs are **public**. Everything below follows f
 - **Settings → Actions → General → Workflow permissions:** read repository contents.
 - `thepekoetrail.org` is verified in the organisation's GitHub Pages settings, so no other
   account can serve `status.thepekoetrail.org`.
-- Dependabot alerts and security updates are on.
+- Dependabot is off. Dependencies are updated by hand, and installs never run their scripts
+  (`npm ci --ignore-scripts`).
