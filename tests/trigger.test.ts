@@ -62,7 +62,12 @@ describe('error reports', () => {
 describe('scheduled run', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  /** Answers the GitHub API as if one run had been stuck for 30 hours. */
+  /**
+   * Replaces fetch with a GitHub API in which run 7 has been open for 30 hours.
+   *
+   * @param dispatchStatus The HTTP status the dispatch call answers with.
+   * @returns Every call made, by URL and method, in order.
+   */
   function stubFetch(dispatchStatus = 204) {
     const calls: { url: string; method: string }[] = [];
     vi.stubGlobal(

@@ -1,21 +1,14 @@
 // @ts-check
-// The `pekoe-status-trigger` Cloudflare Worker. Paste this file into the Worker's editor;
-// see "Scheduling the checks" in the README. It runs on a cron trigger every ten minutes.
 
 const API = 'https://api.github.com/repos/Pekoe-Trail/pekoe-status-monitor';
 const WORKFLOW = 'check.yml';
 const SITE_URL = 'https://status.thepekoetrail.org';
 
-/** A run still open after this long is stuck: a normal run finishes in about 2 minutes. */
 export const STUCK_MINUTES = 20;
-/** No successful check for this long means the monitor has stalled. */
 export const STALE_MINUTES = 40;
-/** While stalled, the alert repeats this often. */
 export const REMIND_MINUTES = 360;
-/** The cron interval: each window below is one tick wide, so a message goes out once. */
 export const TICK_MINUTES = 10;
 
-/** Run statuses GitHub uses for a run that hasn't finished. */
 const OPEN_STATUSES = ['queued', 'in_progress', 'waiting', 'pending', 'requested'];
 
 /**
@@ -24,9 +17,7 @@ const OPEN_STATUSES = ['queued', 'in_progress', 'waiting', 'pending', 'requested
  */
 
 /**
- * Picks the runs that have been open too long. A job GitHub never gives a runner stays
- * open indefinitely, and because the workflow lets one run at a time hold the status data,
- * it blocks every run after it.
+ * Picks the check runs open longer than STUCK_MINUTES, which are stuck rather than slow.
  *
  * @param {Run[]} runs Open runs of the check workflow.
  * @param {number} now The current time, in milliseconds.
@@ -153,7 +144,6 @@ async function cancelStuckRuns(env, now) {
   const open = (await Promise.all(OPEN_STATUSES.map((status) => listRuns(env, status, 100)))).flat();
   for (const run of stuckRuns(open, now)) {
     const res = await github(env, `/actions/runs/${run.id}/force-cancel`, { method: 'POST' });
-    // 409: the run finished between the listing and the cancel.
     if (!res.ok && res.status !== 409) throw new Error(`Cancelling run ${run.id}: GitHub answered ${res.status}`);
     console.log(`Cancelled run ${run.id}, open since ${run.created_at}`);
   }
@@ -211,8 +201,6 @@ export default {
     });
     await attempt(() => reportStall(env, now));
 
-    // A lapsed token fails every call above, including the one that would notice the
-    // stall, so the Worker reports its own errors too: once every six hours, not every run.
     if (errors.length && reportsErrorsNow(now) && env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
       await attempt(async () => {
         const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -224,8 +212,6 @@ export default {
       });
     }
 
-    // Thrown last, so one failing step doesn't stop the others, and still shows as an
-    // error in the Worker's logs.
     if (errors.length) throw new Error(errors.join('; '));
   },
 };
